@@ -1,0 +1,204 @@
+8080 has
+    registers and address logic
+    ALU
+    instruction register and control section
+    bi-directional 3-state data bus
+
+
+registers
+    program counter
+    stack pointer
+    6 8-bit genral purpose registers in 2 pairs
+        B, C, D, E
+        H, L
+    2 temporary registers which are not addressable, only used for internal execution
+        W, Z
+
+    flag register
+    8-bit instruction register
+
+
+ALU 
+    has below registers
+        8-bit accumulator
+        8-bit temp accumulator (ACT)
+        5-bit register flag
+        8-bit temp register (AMP)
+
+    data flows like
+        data bus to TMP and ACT
+        TMP to ALU
+
+
+instruction cycle
+    time needed to fetch and execute 1 instruction
+    has 2 steps
+        fetch: selected instruciton (1 or 2 or 3 bytes) is extracted from memory 
+            and stored in cpu instruction register
+        execute: that instruction is decoded and translated in specific processing activities
+
+    1 instruction cycle consists of 1,2,3,4 or 5 machine cycles
+
+    1 instruction cycle can have below machine cycles
+        FETCH
+        MEMORY READ
+        MEMORY WRITE
+        STACK READ
+        STACK WRITE
+        INPUT
+        OUTPUT
+        INTERRUPT
+        HALT
+        HALT*INTERRUPT
+
+
+machine cycle
+    1 machine cycle is needed when cpu access memory or IO port
+    all instructions need 1 machine cycle in fetch step for each byte to be fetched from memory
+        and 1 or more in execute step
+    
+    1 machine cycle consits of 3,4,or 5 states
+    state is smallest unit of processing activity and is interval between 2 successing positive transitions of o1 clock pulse
+    this o1 clock pulse is provideed on o1 pin of 8080 which should be 2-phase clock oscilator
+    there is also a o2 clock which is inverted of o1, and 8080 generate SYNC pulse when o2 goes low to high
+    
+    there are 3 exceptions to this logic for below instructions
+        HLTA, HLDA, WAIT
+
+    duration of all states is integral multiple of clock period o1 as they need to be in sync with the clock
+
+    for every machine cycle 8080 can only use 1 address
+
+data transfer in cycle  
+    during instruction fetch first byte of instruction is transferred from bus to insturction regsiter.
+    then contents of instruction reister are availble to instruciton decoder
+    output of decoder + timing signals provided into register array, ALU, data buffer blocks
+    also output of instruction decoder and external control signal provide timing and state control section which generate state and cycle timing signals
+
+data bus buffer
+
+
+machine cycle identification example
+    ADD r : it add register content from general pupose register to the content of accumulator register instruction
+        first machine cycle to fetch the 8-bit instruction from memory
+        and thats all is needed
+        this machine cycle need 3 states to get the instruction info from memory and 1 state to do the addition.
+        so ADD r instruction needs 4 pules o1 clock.
+    
+    ADD M: it adds contents of specific memory location to existing content of accumulator.
+        first machine cycle (FETCH) to get the 8-bit instructions
+            takes 3 states
+        
+        second machine cycle (EXECUTE)
+            cpu sends out address of the contents of H and L registers
+            8 bit memory is read and content is place in temp register in 8080
+            this took 3 states
+            content of temp register is added with accumulator for
+            this takes 1 state
+
+
+    in every first state of a machine cycle 8080 sets the D0 - D7 pins with current status
+
+
+States:
+    T1: memory address or IO devide number is placed on address bus (A0-A15) and status info is placed on data bus (D0-D7)
+    T2: cpu samples READY and HOLD inputs and checks for HALT instruction
+    TW(optional): process enters this wait state if READY pin is LOW or HALT insttruciton is executed
+    T3: instruction byte (in FETCH machine cycle) or data byte (MEMORY READ, STACK READ) or interrupt instruction (in INTERRUPT machine cycle)
+        is input to the cpu, OR
+        data byte (in MEMORY WRITE, STACK WRITE, OUTPUT machine cycle) is output on the data bus by processor
+
+    T4 and T5: if used by instruction, if not CPU will skip these. these are mostly used for internal processor operations
+
+Interrupt processing:
+    8080 can handle interrrupt request from external device
+    external device makes INT pin high
+    its async request and can happen at any time independent of clock cycles in machine cycles
+    read more, didn't get it on first read
+
+Hold processing: 
+    used for giving direct memory access to an external device.
+    when external device makes HOLD ping high, 8080 acks it by outputing high on HLDA pin
+    then 8080 gives up control on address and data pins so external device can use it without 8080 intervention
+
+
+Halt processing:
+    when HLT instruction is executed cpu enters halt state, it can come back to normal in 2 cases
+        high on RESET pin
+        interrupt on INT pin makes 8080 exit halt state and get into T1 state of next machine cycle
+
+8080 startup sequence:
+    when powered up, content of its internal register used by program coutner and stack pointer will be random
+    so RESET pin needs to be high for at least 3 clock cycles so program execution begins at memory location 0
+    and 8080 begins executing stored program immedietly.
+    RESET pin doesn't affect its general registers, so program needs to initialize them if necessary.
+
+
+Interfacing 8080 with memory and IO
+    Memory: ROM and RAM
+    IO: keyboard, mouse, floppy disks
+
+    3 buses used to interconnect those
+        data bus: bi directional for data between CPU and Memory/IO
+        Address bus: uni-directional that identify particaular memory location or IO device
+        Contraol bus: uni-directional set of signals that indicate activity in current process
+
+
+    RAM and ROM:    
+        8080 treats RAM same ROM
+        8080 issues address to RAM during T1 and T2 states of memory write cycle when it needs to write data in it
+        use 4 8316A IC for RAM for size 8K byte size
+        use 1 8111 IC for 512 byte RAM
+
+        A0-A10 pins connected to ROMs
+        A0-A7 pins connected to RAMs
+
+    
+    IO interface:
+        can be isolated IO or memory mapped IO
+        TODO: read 1 more time in deep
+
+
+
+Instruction set
+
+    5 different groups of instructions
+        data transfer group
+        airthmetic group
+        logical group
+        branch group
+        stack, IO, machine control group
+
+    memory for 8080 is organized into 8 bit quantities.
+        each byte has unique 16-but binary address which corresponds to sequential position in memory
+    8080 can directlyy address up to 65,536 bytes of memory from RAM and ROM
+
+    instructions can be 1 or 2 or 3 bytes
+    multiple byte instructions should be stored in successive memory locations
+    address of first byte is alwasys as address of instruction
+    same for its data, is stored in memory with least significant byte first
+
+    Addressing Modes for accessing data in memory or register
+        direct: bytes 2 and 3 of instruction contain exact memory address of data
+                low order bits of address are in byte 2 and   high-order in byte 3
+        register: instruction specify register where data is stored
+        register indirect: instruction specify register which contains memory address of data
+
+        immediate: instruction contains data itself
+
+    
+    flags:
+        5 flags used by instrictions while execution
+            zero, sign, parity, carry, auxillary carry
+        
+        
+    
+
+
+
+
+
+        
+
+
+
