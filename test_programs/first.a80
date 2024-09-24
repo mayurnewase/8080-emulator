@@ -1,0 +1,17 @@
+; Welcome in ASM80.COM.
+
+ ;Place your code here...
+
+
+ ;ASM80 is a hobby project, written and ;maintained by only one person, 
+ ;mostly at weekends. It contains IDE, ;assemblers, emulators, 
+ ;tools and command line assembler utility. ;So if you 
+ ;find ASM80.com useful, please ;consider a donation. 
+ ;I will warmly appreciate it. Thank you.
+ 
+ inr a
+ inr b
+ inr h
+ mov b, a;
+ 
+ 

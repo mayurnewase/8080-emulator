@@ -80,7 +80,15 @@ static inline void i8080_wb(i8080* const c, uint16_t addr, uint8_t val) {
 }
 
 // reads a word from memory
+// shifts byte 2 to left by 8 bits and bit ORs with byte 1
+// to give 16 bit number with 2nd byte first 8 bits and 1st byte in last 8 bits
 static inline uint16_t i8080_rw(i8080* const c, uint16_t addr) {
+  printf(
+      "rw without shift %d %d %x %d \n ", c->read_byte(c->userdata, addr + 1),
+      c->read_byte(c->userdata, addr + 1) << 8,
+      c->read_byte(c->userdata, addr + 1) << 8 | c->read_byte(c->userdata, addr)
+      // |  c->read_byte(c->userdata, addr))
+  );
   return c->read_byte(c->userdata, addr + 1) << 8 |
          c->read_byte(c->userdata, addr);
 }
@@ -89,6 +97,8 @@ static inline uint16_t i8080_rw(i8080* const c, uint16_t addr) {
 static inline void i8080_ww(i8080* const c, uint16_t addr, uint16_t val) {
   c->write_byte(c->userdata, addr, val & 0xFF);
   c->write_byte(c->userdata, addr + 1, val >> 8);
+  printf("writing word in memory %x = %x, %x = %x \n", addr, val & 0xFF, addr + 1,
+      val >> 8);
 }
 
 // returns the next byte in memory (and updates the program counter)
@@ -97,9 +107,10 @@ static inline uint8_t i8080_next_byte(i8080* const c) {
 }
 
 // returns the next word in memory (and updates the program counter)
-static inline uint16_t i8080_next_word(i8080* const c) {
+static inline uint16_t  i8080_next_word(i8080* const c) {
   uint16_t result = i8080_rw(c, c->pc);
   c->pc += 2;
+  printf("next word %d %x \n", result, result);
   return result;
 }
 
@@ -128,6 +139,7 @@ static inline uint16_t i8080_get_de(i8080* const c) {
 }
 
 static inline uint16_t i8080_get_hl(i8080* const c) {
+  printf("get hl %x %x \n", c->h<<8, c->l);
   return (c->h << 8) | c->l;
 }
 
@@ -135,8 +147,9 @@ static inline uint16_t i8080_get_hl(i8080* const c) {
 
 // pushes a value into the stack and updates the stack pointer
 static inline void i8080_push_stack(i8080* const c, uint16_t val) {
-  c->sp -= 2;
+  c->sp -= 2; // sp -> 7bb, pc -> 441
   i8080_ww(c, c->sp, val);
+  printf("pushing stack %x %x \n", val, c->sp);
 }
 
 // pops a value from the stack and updates the stack pointer
@@ -193,7 +206,7 @@ static inline void i8080_dad(i8080* const c, uint16_t val) {
 // increments a byte
 static inline uint8_t i8080_inr(i8080* const c, uint8_t val) {
   uint8_t result = val + 1;
-  c->hf = (result & 0xF) == 0;
+  c->hf = (result & 0xF) == 0; // current
   SET_ZSP(c, result);
   return result;
 }
@@ -258,6 +271,7 @@ static inline void i8080_cond_jmp(i8080* const c, bool condition) {
 
 // pushes the current pc to the stack, then jumps to an address
 static inline void i8080_call(i8080* const c, uint16_t addr) {
+  // addr - > 14b;, pc -> 443
   i8080_push_stack(c, c->pc);
   i8080_jmp(c, addr);
 }
@@ -376,6 +390,7 @@ static inline void i8080_xthl(i8080* const c) {
 // executes one opcode
 static inline void i8080_execute(i8080* const c, uint8_t opcode) {
   c->cyc += OPCODES_CYCLES[opcode];
+  printf("\n opcode cycles %d \n", OPCODES_CYCLES[opcode]);
 
   // when DI is executed, interrupts won't be serviced
   // until the end of next instruction:
@@ -460,7 +475,9 @@ static inline void i8080_execute(i8080* const c, uint8_t opcode) {
   case 0x75: i8080_wb(c, i8080_get_hl(c), c->l); break; // MOV M,L
 
   case 0x3E: c->a = i8080_next_byte(c); break; // MVI A,byte
-  case 0x06: c->b = i8080_next_byte(c); break; // MVI B,byte
+  case 0x06:
+    c->b = i8080_next_byte(c);
+    break; // MVI B,byte
   case 0x0E: c->c = i8080_next_byte(c); break; // MVI C,byte
   case 0x16: c->d = i8080_next_byte(c); break; // MVI D,byte
   case 0x1E: c->e = i8080_next_byte(c); break; // MVI E,byte
@@ -476,7 +493,9 @@ static inline void i8080_execute(i8080* const c, uint8_t opcode) {
 
   case 0x01: i8080_set_bc(c, i8080_next_word(c)); break; // LXI B,word
   case 0x11: i8080_set_de(c, i8080_next_word(c)); break; // LXI D,word
-  case 0x21: i8080_set_hl(c, i8080_next_word(c)); break; // LXI H,word
+  case 0x21:
+    i8080_set_hl(c, i8080_next_word(c));
+    break; // LXI H,word
   case 0x31: c->sp = i8080_next_word(c); break; // LXI SP,word
   case 0x2A: i8080_set_hl(c, i8080_rw(c, i8080_next_word(c))); break; // LHLD
   case 0x22: i8080_ww(c, i8080_next_word(c), i8080_get_hl(c)); break; // SHLD
@@ -647,7 +666,9 @@ static inline void i8080_execute(i8080* const c, uint8_t opcode) {
   case 0xDC: i8080_cond_call(c, c->cf == 1); break; // CC
   case 0xE4: i8080_cond_call(c, c->pf == 0); break; // CPO
   case 0xEC: i8080_cond_call(c, c->pf == 1); break; // CPE
-  case 0xF4: i8080_cond_call(c, c->sf == 0); break; // CP
+  case 0xF4:
+    i8080_cond_call(c, c->sf == 0);
+    break; // CP
   case 0xFC: i8080_cond_call(c, c->sf == 1); break; // CM
 
   case 0xC9: i8080_ret(c); break; // RET
@@ -709,9 +730,10 @@ void i8080_init(i8080* const c) {
 
   c->cyc = 0;
 
-  c->pc = 0;
-  c->sp = 0;
+  c->pc = 0; // program counter
+  c->sp = 0; // stack pointer
 
+  // general registers
   c->a = 0;
   c->b = 0;
   c->c = 0;
@@ -720,17 +742,27 @@ void i8080_init(i8080* const c) {
   c->h = 0;
   c->l = 0;
 
-  c->sf = 0;
-  c->zf = 0;
-  c->hf = 0;
-  c->pf = 0;
-  c->cf = 0;
-  c->iff = 0;
+  c->sf = 0; // sign flag
+  c->zf = 0; // zero flag
+  c->hf = 0; // half carry flag
+  c->pf = 0; // parity flag
+  c->cf = 0; // carry flag
+  c->iff = 0; // interrupt / io / internal flag NOTE: find exact meaning
 
   c->halted = 0;
   c->interrupt_pending = 0;
   c->interrupt_vector = 0;
   c->interrupt_delay = 0;
+}
+
+void print_registers(i8080* const c) {
+  printf("\n------------------------------\n");
+  printf("\npc %d %x", c->pc, c->pc);
+  printf("\nsp %x, sp-2 %x, sp-1 %x", c->sp, c->sp - 2, c->sp - 1);
+  printf("\n a %d %x b %d %x", c->a, c->a, c->b, c->b);
+  printf("\n h %d %x l %d %x", c->h, c->h, c->l, c->l);
+  printf("\n d %d %x e %d %x", c->d, c->d, c->e, c->e);
+  printf("\n------------------------------\n");
 }
 
 // executes one instruction
@@ -744,7 +776,17 @@ void i8080_step(i8080* const c) {
 
     i8080_execute(c, c->interrupt_vector);
   } else if (!c->halted) {
-    i8080_execute(c, i8080_next_byte(c));
+    printf("\nbefore execute");
+    print_registers(c);
+    printf("\npc -> %x", c->pc);
+
+    uint8_t next_byte = i8080_next_byte(c);
+    printf("\n next byte %d %x %d \n", next_byte, next_byte, c->pc);
+    i8080_execute(c, next_byte); // current
+
+    printf("\nafter executsion\n");
+    print_registers(c);
+    printf("\n----------------\n");
   }
 }
 

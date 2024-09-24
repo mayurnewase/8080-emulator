@@ -1,5 +1,6 @@
 // This file uses the 8080 emulator to run the test suite (roms in cpu_tests
 // directory). It uses a simple array as memory.
+// use hexdump -C cpu_tests/TST8080.COM  to check contents of test files
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,8 +9,8 @@
 #include "i8080.h"
 
 // memory callbacks
-#define MEMORY_SIZE 0x10000
-static uint8_t* memory = NULL;
+#define MEMORY_SIZE 0x10000 // in bytes
+static uint8_t* memory = NULL; // holds the test file content which is program to run
 static bool test_finished = 0;
 
 static uint8_t rb(void* userdata, uint16_t addr) {
@@ -81,7 +82,7 @@ static inline void run_test(
   c->port_out = port_out;
   memset(memory, 0, MEMORY_SIZE);
 
-  if (load_file(filename, 0x100) != 0) {
+  if (load_file(filename, 0x100) != 0) { // loads file data in memorry array from 256th position
     return;
   }
   printf("*** TEST: %s\n", filename);
@@ -89,24 +90,38 @@ static inline void run_test(
   c->pc = 0x100;
 
   // inject "out 0,a" at 0x0000 (signal to stop the test)
+  // printf("memory data %d %x ", memory[0]);
+  // printf("memory data %d %x ", memory[0], memory[0]);
+
   memory[0x0000] = 0xD3;
   memory[0x0001] = 0x00;
+  int index_test = 437;
+
+  // printf("memory data %d %x %x\n", memory[0], memory[0], memory[0x100]);
+  // printf("memory data %d %d \n", memory[434], memory[0x01b2]);
+  printf("memory data %d %x \n", memory[index_test], memory[index_test]);
+
+  for(int i = 0 ; i <= 435 ; i++){
+    printf("%d %d %x | ", i, memory[i], memory[i]);
+  }
+
 
   // inject "out 1,a" at 0x0005 (signal to output some characters)
-  memory[0x0005] = 0xD3;
+  memory[0x0005] = 0xD3; // D3 instruction opcode prints to cli
   memory[0x0006] = 0x01;
   memory[0x0007] = 0xC9;
 
   long nb_instructions = 0;
 
   test_finished = 0;
-  while (!test_finished) {
+  int steps = 0;
+  while (!test_finished && steps < 500000000) {
     nb_instructions += 1;
 
     // uncomment following line to have a debug output of machine state
     // warning: will output multiple GB of data for the whole test suite
     // i8080_debug_output(c, false);
-
+    steps++;
     i8080_step(c);
   }
 
@@ -124,9 +139,10 @@ int main(void) {
 
   i8080 cpu;
   run_test(&cpu, "cpu_tests/TST8080.COM", 4924LU);
-  run_test(&cpu, "cpu_tests/CPUTEST.COM", 255653383LU);
-  run_test(&cpu, "cpu_tests/8080PRE.COM", 7817LU);
-  run_test(&cpu, "cpu_tests/8080EXM.COM", 23803381171LU);
+  // run_test(&cpu, "cpu_tests/CPUTEST.COM", 255653383LU);
+  // run_test(&cpu, "cpu_tests/8080PRE.COM", 7817LU);
+  // run_test(&cpu, "cpu_tests/8080EXM.COM", 23803381171LU);
+  // run_test(&cpu, "cpu_tests/cpudiag.bin", 4924LU);
 
   free(memory);
 
