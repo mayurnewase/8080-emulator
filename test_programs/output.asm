@@ -1,5 +1,4 @@
-MVI A, data
-DAA
-DAA
-DAA
-DAA
+NOP
+NOP
+NOP
+NOP

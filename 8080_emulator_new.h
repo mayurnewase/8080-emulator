@@ -2,13 +2,18 @@
 #include <stdbool.h>
 
 // int MEMORY_SIZE = 20;
-#define MEMORY_SIZE 20
+// #define MEMORY_SIZE 20
+#define MEMORY_SIZE 0x10000
+
 // char ROM_NAME[] = "test_programs/mov_a_10_and_inr_a.a80.bin";
 // char ROM_NAME[] = "test_programs/first.a80.bin";
 // char ROM_NAME[] = "test_programs/mov_A_M.bin";
-char ROM_NAME[] = "test_programs/daa.asm80.a80.bin";
+// char ROM_NAME[] = "test_programs/daa.asm80.a80.bin";
+// extern ROM_NAME[];
+#define ROM_NAME "test_programs/daa.asm80.a80.bin"
 
-char OUPUT_ASSEMBLY_NAME[] = "test_programs/output.asm";
+// char OUPUT_ASSEMBLY_NAME[] = "test_programs/output.asm";
+#define OUPUT_ASSEMBLY_NAME "test_programs/output.asm"
 
 // define processor object
 
@@ -44,7 +49,7 @@ typedef struct {
 
 } cpu;
 
-void cpu_init(cpu* cpu);
-
+void cpu_init(cpu* cpu, char* rom_name, uint16_t memory_offset_to_load_rom);
+void debug_cpu(cpu* cpu);
 
 

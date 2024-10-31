@@ -2,28 +2,27 @@
 #include <string.h>
 #include "8080_emulator_new.h"
 
-void load_rom(cpu* cpu) {
+void load_rom(cpu* cpu, char* rom_name, uint16_t memory_offset) {
   // load the ROM into memory
-  printf("loading rom\n");
+  printf("loading rom %s\n", rom_name);
   fflush(stdout);
 
-  FILE* f = fopen(ROM_NAME, "rb");
-  printf("opened file\n");
-  fflush(stdout);
+  FILE* f = fopen(rom_name, "rb");
 
   if (f == NULL) {
-    fprintf(stderr, "error: can't open file '%s'.\n", ROM_NAME);
+    fprintf(stderr, "error: can't open file '%s'.\n", rom_name);
     exit(1);
   }
-  printf("rom loaded");
-  fflush(stdout);
 
-  size_t bytes_read = fread(cpu->memory, 1, 5, f);
-
-  printf("read byte in moemry %x %x %x \n", cpu->memory[0], cpu->memory[1],
-      cpu->memory[2]);
+  // size_t bytes_read = fread(cpu->memory, 1, 5, f);
+  size_t bytes_read = fread(&cpu->memory[memory_offset], sizeof(uint8_t), ftell(f), f);
+  // printf("read byte in moemry %x %x %x \n", cpu->memory[0], cpu->memory[1],
+  //     cpu->memory[2]);
 
   // fclose(f); // TODO: gives error, fix it
+  printf("rom loaded %d bytes\n", bytes_read);
+  fflush(stdout);
+
 }
 
 void init_registers(cpu* cpu) {
@@ -46,13 +45,13 @@ void init_flags(cpu* cpu) {
   cpu->acf = 0;
 }
 
-void cpu_init(cpu* cpu) {
+void cpu_init(cpu* cpu, char* rom_name, uint16_t memory_offset_to_load_rom) {
   // load the ROM into memory
-  for (int i = 0; i < MEMORY_SIZE; i++) {
-    cpu->memory[i] = 0;
-  }
+  // for (int i = 0; i < MEMORY_SIZE; i++) {
+  //   cpu->memory[i] = 0;
+  // }
 
-  load_rom(cpu);
+  load_rom(cpu, rom_name, memory_offset_to_load_rom);
 
   init_registers(cpu);
   init_flags(cpu);
@@ -68,6 +67,7 @@ void set_carry_flag(cpu* cpu, uint16_t result) {
 void step(cpu* cpu, FILE* op_fh) {
   // fetch the instruction using program counter
   int instruction = cpu->memory[cpu->pc];
+  printf("\ncpu runnning instruction %x", instruction);
 
   switch (instruction) {
 
@@ -369,7 +369,7 @@ void step(cpu* cpu, FILE* op_fh) {
     printf("> MOV A, M\n");
     fprintf(op_fh, "MOV A, M\n");
     cpu->a =
-        cpu->memory[cpu->h << 8 | cpu->l]; // TODO: test and compare with chip
+        cpu->memory[cpu->h << 8 | cpu->l];
     cpu->pc += 1;
     break;
   case 0x46:
@@ -1775,6 +1775,7 @@ void step(cpu* cpu, FILE* op_fh) {
   case 0x0: 
     printf("> NOP\n");
     fprintf(op_fh, "NOP\n");
+    cpu->pc += 1;
     break;
 
   default: printf("instruction not found: %x\n", instruction); break;
@@ -1783,7 +1784,7 @@ void step(cpu* cpu, FILE* op_fh) {
 
 
 
-void debug(cpu* cpu) {
+void debug_cpu(cpu* cpu) {
   printf("---------------------------\n");
   printf("A : %x\n", cpu->a);
   printf("B : %x\n", cpu->b);
@@ -1801,22 +1802,23 @@ void debug(cpu* cpu) {
   printf("---------------------------\n");
 }
 
-int main(int argc, char** argv) {
-  printf(
-      "starting program %d %d %d \n ", sizeof(cpu), sizeof(int), sizeof(bool));
-  cpu* cpu = malloc(50);
 
-  cpu_init(cpu);
-  int total_steps = 5;
+// int main(int argc, char** argv) {
+//   printf(
+//       "starting program %d %d %d \n ", sizeof(cpu), sizeof(int), sizeof(bool));
+//   cpu* cpu = malloc(50);
 
-  FILE* op_fh = fopen(OUPUT_ASSEMBLY_NAME, "w");
+//   cpu_init(cpu, ROM_NAME);
+//   int total_steps = 5;
 
-  for (int i = 0; i < total_steps; i++) {
-    step(cpu, op_fh);
-    debug(cpu);
-  }
+//   FILE* op_fh = fopen(OUPUT_ASSEMBLY_NAME, "w");
 
-  free(cpu);
-  printf("\n program finished\n");
-  return 0;
-}
+//   for (int i = 0; i < total_steps; i++) {
+//     step(cpu, op_fh);
+//     debug_cpu(cpu);
+//   }
+
+//   free(cpu);
+//   printf("\n program finished\n");
+//   return 0;
+// }

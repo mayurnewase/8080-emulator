@@ -776,17 +776,17 @@ void i8080_step(i8080* const c) {
 
     i8080_execute(c, c->interrupt_vector);
   } else if (!c->halted) {
-    printf("\nbefore execute");
-    print_registers(c);
-    printf("\npc -> %x", c->pc);
+    // printf("\nbefore execute");
+    // print_registers(c);
+    // printf("\npc -> %x", c->pc);
 
     uint8_t next_byte = i8080_next_byte(c);
-    printf("\n next byte %d %x %d \n", next_byte, next_byte, c->pc);
+    // printf("\n next byte %d %x %d \n", next_byte, next_byte, c->pc);
     i8080_execute(c, next_byte); // current
 
-    printf("\nafter executsion\n");
-    print_registers(c);
-    printf("\n----------------\n");
+    // printf("\nafter executsion\n");
+    // print_registers(c);
+    // printf("\n----------------\n");
   }
 }
 
@@ -799,26 +799,42 @@ void i8080_interrupt(i8080* const c, uint8_t opcode) {
 // outputs a debug trace of the emulator state to the standard output,
 // including registers and flags
 void i8080_debug_output(i8080* const c, bool print_disassembly) {
-  uint8_t f = 0;
-  f |= c->sf << 7;
-  f |= c->zf << 6;
-  f |= c->hf << 4;
-  f |= c->pf << 2;
-  f |= 1 << 1; // bit 1 is always 1
-  f |= c->cf << 0;
+  // uint8_t f = 0;
+  // f |= c->sf << 7;
+  // f |= c->zf << 6;
+  // f |= c->hf << 4;
+  // f |= c->pf << 2;
+  // f |= 1 << 1; // bit 1 is always 1
+  // f |= c->cf << 0;
 
-  printf("PC: %04X, AF: %04X, BC: %04X, DE: %04X, HL: %04X, SP: %04X, CYC: %lu",
-      c->pc, c->a << 8 | f, i8080_get_bc(c), i8080_get_de(c), i8080_get_hl(c),
-      c->sp, c->cyc);
+  // printf("PC: %04X, AF: %04X, BC: %04X, DE: %04X, HL: %04X, SP: %04X, CYC: %lu",
+  //     c->pc, c->a << 8 | f, i8080_get_bc(c), i8080_get_de(c), i8080_get_hl(c),
+  //     c->sp, c->cyc);
 
-  printf("\t(%02X %02X %02X %02X)", i8080_rb(c, c->pc), i8080_rb(c, c->pc + 1),
-      i8080_rb(c, c->pc + 2), i8080_rb(c, c->pc + 3));
+  // printf("\t(%02X %02X %02X %02X)", i8080_rb(c, c->pc), i8080_rb(c, c->pc + 1),
+  //     i8080_rb(c, c->pc + 2), i8080_rb(c, c->pc + 3));
 
-  if (print_disassembly) {
-    printf(" - %s", DISASSEMBLE_TABLE[i8080_rb(c, c->pc)]);
-  }
+  // if (print_disassembly) {
+  //   printf(" - %s", DISASSEMBLE_TABLE[i8080_rb(c, c->pc)]);
+  // }
 
-  printf("\n");
+  // printf("\n");
+
+  printf("---------------------------\n");
+  printf("A : %x\n", c->a);
+  printf("B : %x\n", c->b);
+  printf("C : %x\n", c->c);
+  printf("D : %x\n", c->d);
+  printf("E : %x\n", c->e);
+  printf("H : %x\n", c->h);
+  printf("L : %x\n", c->l);
+  printf("PC: %x\n", c->pc);
+  printf("ZF: %x\n", c->zf);
+  printf("CF: %x\n", c->cf);
+  printf("SF: %x\n", c->sf);
+  printf("PF: %x\n", c->pf);
+  printf("ACF: %x\n", c->hf);
+  printf("---------------------------\n");
 }
 
 #undef SET_ZSP
