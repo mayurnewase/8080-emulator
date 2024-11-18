@@ -15,14 +15,25 @@ void load_rom(cpu* cpu, char* rom_name, uint16_t memory_offset) {
   }
 
   // size_t bytes_read = fread(cpu->memory, 1, 5, f);
-  size_t bytes_read = fread(&cpu->memory[memory_offset], sizeof(uint8_t), ftell(f), f);
-  // printf("read byte in moemry %x %x %x \n", cpu->memory[0], cpu->memory[1],
-  //     cpu->memory[2]);
+  
+  // get the file size to load into memory correctly, or ftell gives 0 lol.
+  fseek(f, 0, SEEK_END);
+  size_t file_size = ftell(f);
+  rewind(f);
 
-  // fclose(f); // TODO: gives error, fix it
+  printf("file size %d ", file_size);
+  fflush(stdout);
+
+  size_t bytes_read = fread(&cpu->memory[memory_offset], sizeof(uint8_t), 5, f);
+  printf("read byte in memory %x %x %x \n", cpu->memory[0], cpu->memory[1],
+      cpu->memory[2]);
+
+  fclose(f); // TODO: gives error, fix it
   printf("rom loaded %d bytes\n", bytes_read);
   fflush(stdout);
 
+  // cpu->memory[0xa14] = 20; // TODO: remove this
+  // printf("memory set %x\n", cpu->memory[0xa14]);
 }
 
 void init_registers(cpu* cpu) {
@@ -1785,7 +1796,7 @@ void step(cpu* cpu, FILE* op_fh) {
 
 
 void debug_cpu(cpu* cpu) {
-  printf("---------------------------\n");
+  printf("------------cpu---------------\n");
   printf("A : %x\n", cpu->a);
   printf("B : %x\n", cpu->b);
   printf("C : %x\n", cpu->c);

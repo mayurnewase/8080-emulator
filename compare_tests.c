@@ -7,14 +7,13 @@
 #define ROM_NAME "test_programs/mov_A_M.bin"
 uint16_t memory_offset_to_load_rom = 0x0;
 
-
 // #define ROM_NAME "cpu_tests/TST8080.COM"
 // uint16_t memory_offset_to_load_rom = 0x100;
 
 uint8_t* memory = NULL;
 
 uint8_t rb(void* userdata, int addr) {
-  //   printf("\nchip reading byte at address %x\n", addr);
+  // printf("\nchip reading byte at address %x\n", addr);
   return memory[addr];
 }
 
@@ -92,26 +91,29 @@ int main() {
   i8080* chip = malloc(sizeof(i8080));
   cpu* cpu = malloc(50);
 
-  i8080_init(chip);
-  printf("chip initialized\n");
-  cpu_init(cpu, ROM_NAME, memory_offset_to_load_rom);
-  printf("cpu initialized\n");
-
+  // init chip 
+  i8080_init(chip);  
   chip->userdata = chip;
   chip->read_byte = rb;
 
   FILE* f = fopen(ROM_NAME, "rb");
-  fread(memory, sizeof(uint8_t), ftell(f), f);
+  fread(memory, sizeof(uint8_t), 5, f);
   fclose(f);
+  // memory[0xa14] = 20; // TODO: remove this
+  printf("chip initialized\n");
+
+  // init cpu
+  cpu_init(cpu, ROM_NAME, memory_offset_to_load_rom);
+  printf("cpu initialized\n");
 
   FILE* op_fh = fopen(OUPUT_ASSEMBLY_NAME, "w");
-  printf("memory %x", memory[0]);
-
+  
   // custom op for tests
   // chip->pc = 0x100;
   // cpu->pc = 0x100;
 
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 3; i++) {
+    printf("\n---- step %d ", i);
     i8080_step(chip);
     step(cpu, op_fh);
 
@@ -125,6 +127,7 @@ int main() {
     printf("\n-------------------step finish-----------------------\n");
   }
 
+  fclose(op_fh);
   printf("\nRegisters are equal\n");
   return 0;
 }

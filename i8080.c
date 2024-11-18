@@ -781,7 +781,7 @@ void i8080_step(i8080* const c) {
     // printf("\npc -> %x", c->pc);
 
     uint8_t next_byte = i8080_next_byte(c);
-    // printf("\n next byte %d %x %d \n", next_byte, next_byte, c->pc);
+    printf("\n chip next byte %x %d \n", next_byte, c->pc);
     i8080_execute(c, next_byte); // current
 
     // printf("\nafter executsion\n");
@@ -820,7 +820,7 @@ void i8080_debug_output(i8080* const c, bool print_disassembly) {
 
   // printf("\n");
 
-  printf("---------------------------\n");
+  printf("------------chip---------------\n");
   printf("A : %x\n", c->a);
   printf("B : %x\n", c->b);
   printf("C : %x\n", c->c);
