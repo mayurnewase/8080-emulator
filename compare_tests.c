@@ -4,17 +4,41 @@
 
 // NOTE: to run -> clang i8080.c 8080_emulator_new.c compare_tests.c && ./a.out
 
-#define ROM_NAME "test_programs/mov_A_M.bin"
-uint16_t memory_offset_to_load_rom = 0x0;
+// #define ROM_NAME "test_programs/mov_A_M.bin"
+// uint16_t memory_offset_to_load_rom = 0x0;
 
-// #define ROM_NAME "cpu_tests/TST8080.COM"
-// uint16_t memory_offset_to_load_rom = 0x100;
+#define ROM_NAME "cpu_tests/TST8080.COM"
+uint16_t memory_offset_to_load_rom = 0x100;
 
 uint8_t* memory = NULL;
 
-uint8_t rb(void* userdata, int addr) {
-  // printf("\nchip reading byte at address %x\n", addr);
+static bool test_finished = 0;
+
+uint8_t chip_read_byte(void* userdata, int addr) {
   return memory[addr];
+}
+
+void chip_write_byte(void* userdata, uint16_t address, uint8_t data){
+  memory[address] = data;
+}
+
+static void chip_port_out(void* userdata, uint8_t port, uint8_t value) {
+  i8080* const c = (i8080*) userdata;
+
+  if (port == 0) {
+    test_finished = 1;
+  } else if (port == 1) {
+    uint8_t operation = c->c;
+
+    if (operation == 2) { // print a character stored in E
+      printf("%c", c->e);
+    } else if (operation == 9) { // print from memory at (DE) until '$' char
+      uint16_t addr = (c->d << 8) | c->e;
+      do {
+        printf("%c", chip_read_byte(c, addr++));
+      } while (chip_read_byte(c, addr) != '$');
+    }
+  }
 }
 
 int compare_registers(i8080* chip, cpu* cpu) {
@@ -82,6 +106,14 @@ int compare_registers(i8080* chip, cpu* cpu) {
     printf("halted register is not equal\n");
     return 0;
   }
+
+  for(int i=0; i<MEMORY_SIZE; i++) {
+    if (memory[i] != cpu->memory[i]) {
+      printf("memory is not equal %d %x %x \n", i, memory[i], cpu->memory[i]);
+      return 0;
+    }
+  }
+
   return 1;
 }
 
@@ -94,13 +126,19 @@ int main() {
   // init chip 
   i8080_init(chip);  
   chip->userdata = chip;
-  chip->read_byte = rb;
+  chip->read_byte = chip_read_byte;
+  chip->write_byte = chip_write_byte;
+  chip->port_out = chip_port_out;
 
   FILE* f = fopen(ROM_NAME, "rb");
-  fread(memory, sizeof(uint8_t), 5, f);
+  fseek(f, 0, SEEK_END);
+  size_t file_size = ftell(f);
+  rewind(f);
+  fread(&memory[memory_offset_to_load_rom], sizeof(uint8_t), file_size, f);
   fclose(f);
   // memory[0xa14] = 20; // TODO: remove this
   printf("chip initialized\n");
+  printf("100 %d", memory[0x100]);
 
   // init cpu
   cpu_init(cpu, ROM_NAME, memory_offset_to_load_rom);
@@ -108,11 +146,18 @@ int main() {
 
   FILE* op_fh = fopen(OUPUT_ASSEMBLY_NAME, "w");
   
-  // custom op for tests
-  // chip->pc = 0x100;
-  // cpu->pc = 0x100;
+  // custom operations for tests
+  chip->pc = 0x100;
+  cpu->pc = 0x100;
+  memory[0x5] = 0xD3;
+  memory[0x6] = 0x1;
+  memory[0x7] = 0xC9;
+  cpu->memory[0x5] = 0xD3;
+  cpu->memory[0x6] = 0x1;
+  cpu->memory[0x7] = 0xC9;
+  
 
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 90; i++) {
     printf("\n---- step %d ", i);
     i8080_step(chip);
     step(cpu, op_fh);
@@ -120,14 +165,15 @@ int main() {
     i8080_debug_output(chip, true);
     debug_cpu(cpu);
 
+    printf("\n-------------------step finished-----------------------\n");
+
     if (!compare_registers(chip, cpu)) {
       printf("Registers are not equal\n");
       return 1;
     }
-    printf("\n-------------------step finish-----------------------\n");
   }
 
   fclose(op_fh);
-  printf("\nRegisters are equal\n");
+  printf("\nTest finished\n");
   return 0;
 }

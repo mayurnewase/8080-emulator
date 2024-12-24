@@ -35,7 +35,9 @@ typedef struct {
     uint16_t sp;
     
     // memory
-    uint8_t memory[MEMORY_SIZE];
+    // uint8_t memory[MEMORY_SIZE];
+  // dynamic memory
+    uint8_t* memory;
 
     //interrupt enable or disable
     bool interrupt_enable;

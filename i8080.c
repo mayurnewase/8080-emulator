@@ -83,12 +83,12 @@ static inline void i8080_wb(i8080* const c, uint16_t addr, uint8_t val) {
 // shifts byte 2 to left by 8 bits and bit ORs with byte 1
 // to give 16 bit number with 2nd byte first 8 bits and 1st byte in last 8 bits
 static inline uint16_t i8080_rw(i8080* const c, uint16_t addr) {
-  printf(
-      "rw without shift %d %d %x %d \n ", c->read_byte(c->userdata, addr + 1),
-      c->read_byte(c->userdata, addr + 1) << 8,
-      c->read_byte(c->userdata, addr + 1) << 8 | c->read_byte(c->userdata, addr)
-      // |  c->read_byte(c->userdata, addr))
-  );
+  // printf(
+  //     "rw without shift %d %d %x %d \n ", c->read_byte(c->userdata, addr + 1),
+  //     c->read_byte(c->userdata, addr + 1) << 8,
+  //     c->read_byte(c->userdata, addr + 1) << 8 | c->read_byte(c->userdata, addr)
+  //     // |  c->read_byte(c->userdata, addr))
+  // );
   return c->read_byte(c->userdata, addr + 1) << 8 |
          c->read_byte(c->userdata, addr);
 }
@@ -97,8 +97,9 @@ static inline uint16_t i8080_rw(i8080* const c, uint16_t addr) {
 static inline void i8080_ww(i8080* const c, uint16_t addr, uint16_t val) {
   c->write_byte(c->userdata, addr, val & 0xFF);
   c->write_byte(c->userdata, addr + 1, val >> 8);
-  printf("writing word in memory %x = %x, %x = %x \n", addr, val & 0xFF, addr + 1,
+  printf("writing word in memory %x %x = %x, %x = %x \n", val, addr, val & 0xFF, addr + 1,
       val >> 8);
+  // printf("chip memory content %x ", c->read_byte(c->userdata, 0x7bb));
 }
 
 // returns the next byte in memory (and updates the program counter)
@@ -108,9 +109,10 @@ static inline uint8_t i8080_next_byte(i8080* const c) {
 
 // returns the next word in memory (and updates the program counter)
 static inline uint16_t  i8080_next_word(i8080* const c) {
+  // printf("next word %x %x \n", c->read_byte(c, c->pc), c->read_byte(c, c->pc+1));
   uint16_t result = i8080_rw(c, c->pc);
+  // printf("next word %x %x \n", c->pc, result);
   c->pc += 2;
-  printf("next word %d %x \n", result, result);
   return result;
 }
 
@@ -147,9 +149,11 @@ static inline uint16_t i8080_get_hl(i8080* const c) {
 
 // pushes a value into the stack and updates the stack pointer
 static inline void i8080_push_stack(i8080* const c, uint16_t val) {
+  printf("\n pushing stack %x %x \n", val, c->sp);
+
   c->sp -= 2; // sp -> 7bb, pc -> 441
   i8080_ww(c, c->sp, val);
-  printf("pushing stack %x %x \n", val, c->sp);
+  fflush(stdout);
 }
 
 // pops a value from the stack and updates the stack pointer
@@ -272,13 +276,17 @@ static inline void i8080_cond_jmp(i8080* const c, bool condition) {
 // pushes the current pc to the stack, then jumps to an address
 static inline void i8080_call(i8080* const c, uint16_t addr) {
   // addr - > 14b;, pc -> 443
+  printf("calling %x %x", addr, c->pc);
+  fflush(stdout);
   i8080_push_stack(c, c->pc);
   i8080_jmp(c, addr);
+  printf("chip memo at 7bb %x ", c->read_byte(c, 0x7bb));
 }
 
 // calls to next word in memory if a condition is met
 static inline void i8080_cond_call(i8080* const c, bool condition) {
   uint16_t addr = i8080_next_word(c);
+  printf("chip call %x ", addr);
   if (condition) {
     i8080_call(c, addr);
     c->cyc += 6;
@@ -287,6 +295,8 @@ static inline void i8080_cond_call(i8080* const c, bool condition) {
 
 // returns from subroutine
 static inline void i8080_ret(i8080* const c) {
+  printf("chip memory %x %x \n", c->sp, c->read_byte(c->userdata, c->sp));
+  printf("chip memory %x %x \n", c->sp+1 ,c->read_byte(c->userdata, c->sp+1));
   c->pc = i8080_pop_stack(c);
 }
 
@@ -664,7 +674,9 @@ static inline void i8080_execute(i8080* const c, uint8_t opcode) {
   case 0xCC: i8080_cond_call(c, c->zf == 1); break; // CZ
   case 0xD4: i8080_cond_call(c, c->cf == 0); break; // CNC
   case 0xDC: i8080_cond_call(c, c->cf == 1); break; // CC
-  case 0xE4: i8080_cond_call(c, c->pf == 0); break; // CPO
+  case 0xE4: {
+    printf("\nchip e4 %x \n", c->pc);
+    i8080_cond_call(c, c->pf == 0); break;} // CPO
   case 0xEC: i8080_cond_call(c, c->pf == 1); break; // CPE
   case 0xF4:
     i8080_cond_call(c, c->sf == 0);
@@ -781,7 +793,7 @@ void i8080_step(i8080* const c) {
     // printf("\npc -> %x", c->pc);
 
     uint8_t next_byte = i8080_next_byte(c);
-    printf("\n chip next byte %x %d \n", next_byte, c->pc);
+    printf("\n chip running instruction %x\n", next_byte);
     i8080_execute(c, next_byte); // current
 
     // printf("\nafter executsion\n");
@@ -820,7 +832,7 @@ void i8080_debug_output(i8080* const c, bool print_disassembly) {
 
   // printf("\n");
 
-  printf("------------chip---------------\n");
+  printf("\n------------chip---------------\n");
   printf("A : %x\n", c->a);
   printf("B : %x\n", c->b);
   printf("C : %x\n", c->c);
@@ -834,6 +846,7 @@ void i8080_debug_output(i8080* const c, bool print_disassembly) {
   printf("SF: %x\n", c->sf);
   printf("PF: %x\n", c->pf);
   printf("ACF: %x\n", c->hf);
+  printf("SP: %x\n", c->sp);
   printf("---------------------------\n");
 }
 

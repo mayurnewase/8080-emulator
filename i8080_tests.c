@@ -1,6 +1,8 @@
 // This file uses the 8080 emulator to run the test suite (roms in cpu_tests
 // directory). It uses a simple array as memory.
 // use hexdump -C cpu_tests/TST8080.COM  to check contents of test files
+// to run this test check readme for make command or run below directly
+  // gcc i8080_tests.c i8080.c && ./a.out
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -99,30 +101,33 @@ static inline void run_test(
 
   // printf("memory data %d %x %x\n", memory[0], memory[0], memory[0x100]);
   // printf("memory data %d %d \n", memory[434], memory[0x01b2]);
-  printf("memory data %d %x \n", memory[index_test], memory[index_test]);
+  // printf("memory data %d %x \n", memory[index_test], memory[index_test]);
 
-  for(int i = 0 ; i <= 435 ; i++){
-    printf("%d %d %x | ", i, memory[i], memory[i]);
-  }
-
+  // for(int i = 0 ; i <= 435 ; i++){
+  //   printf("%d %d %x | ", i, memory[i], memory[i]);
+  // }
 
   // inject "out 1,a" at 0x0005 (signal to output some characters)
   memory[0x0005] = 0xD3; // D3 instruction opcode prints to cli
   memory[0x0006] = 0x01;
   memory[0x0007] = 0xC9;
 
+  // printf("memory at 0x100 %x %x", memory[0x100], memory[0x101]);
+  // exit(1);
   long nb_instructions = 0;
 
   test_finished = 0;
   int steps = 0;
-  while (!test_finished && steps < 500000000) {
+  while (!test_finished && steps < 10) {
     nb_instructions += 1;
 
     // uncomment following line to have a debug output of machine state
     // warning: will output multiple GB of data for the whole test suite
     // i8080_debug_output(c, false);
     steps++;
+    // i8080_debug_output(c, false);
     i8080_step(c);
+    i8080_debug_output(c, false);
   }
 
   long long diff = cyc_expected - c->cyc;

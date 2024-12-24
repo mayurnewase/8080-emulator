@@ -3,9 +3,19 @@
 #include "8080_emulator_new.h"
 
 void load_rom(cpu* cpu, char* rom_name, uint16_t memory_offset) {
+
+  // dynamic memory
+  cpu->memory = malloc(MEMORY_SIZE);
+  memset(cpu->memory, 0, MEMORY_SIZE);
+
+  // for(int i=0; i<MEMORY_SIZE; i++){
+  //   cpu->memory[i] = (uint8_t) 0;
+  // }
+  printf("\n memory content %x %x \n", cpu->memory[0x7b7], cpu->memory[0x7b8]);
+
   // load the ROM into memory
-  printf("loading rom %s\n", rom_name);
-  fflush(stdout);
+  // printf("loading rom %s\n", rom_name);
+  // fflush(stdout);
 
   FILE* f = fopen(rom_name, "rb");
 
@@ -14,21 +24,30 @@ void load_rom(cpu* cpu, char* rom_name, uint16_t memory_offset) {
     exit(1);
   }
 
+  // printf("file opened\n");
+  // fflush(stdout);
+
   // size_t bytes_read = fread(cpu->memory, 1, 5, f);
-  
+
   // get the file size to load into memory correctly, or ftell gives 0 lol.
   fseek(f, 0, SEEK_END);
+  printf("file seeked to end");
+  fflush(stdout);
+
   size_t file_size = ftell(f);
   rewind(f);
 
-  printf("file size %d ", file_size);
+  // printf("file size %d ", file_size);
+  printf("file size read");
   fflush(stdout);
 
-  size_t bytes_read = fread(&cpu->memory[memory_offset], sizeof(uint8_t), 5, f);
-  printf("read byte in memory %x %x %x \n", cpu->memory[0], cpu->memory[1],
-      cpu->memory[2]);
+  size_t bytes_read =
+      fread(&cpu->memory[memory_offset], sizeof(uint8_t), file_size, f);
+  printf("read byte in memory %x %x %x %x %x %x \n", cpu->memory[0],
+      cpu->memory[1], cpu->memory[2], cpu->memory[0x100], cpu->memory[0x101],
+      cpu->memory[0x102]);
 
-  fclose(f); // TODO: gives error, fix it
+  // fclose(f); // TODO: gives error, fix it
   printf("rom loaded %d bytes\n", bytes_read);
   fflush(stdout);
 
@@ -69,16 +88,48 @@ void cpu_init(cpu* cpu, char* rom_name, uint16_t memory_offset_to_load_rom) {
 }
 
 void set_zero_flag(cpu* cpu, uint8_t result) {
-  cpu->zf = result & 0xff == 0 ? 1 : 0;
+  cpu->zf = (result & 0xff) == 0;
 }
 void set_carry_flag(cpu* cpu, uint16_t result) {
   cpu->cf = result > 0xff ? 1 : 0;
+}
+void set_auxiliary_carry_flag( // TODO: check this function on how does it finds
+                               // out carry from 3rd bit to 4th bit.
+    cpu* cpu, uint8_t a, uint8_t b, int bit_no, bool cy) {
+  int16_t result = a + b + cy;
+  int16_t carry = result ^ a ^ b;
+  cpu->acf = carry & (1 << bit_no);
+}
+void set_parity_flag(cpu* cpu, uint8_t result) {
+  int count_of_ones = 0;
+  for (int i = 0; i < 8; i++) {
+    if (result & 0x01) {
+      count_of_ones++;
+    }
+    result = result >> 1;
+  }
+  cpu->pf = count_of_ones % 2 == 0;
+}
+void set_sign_flag(cpu* cpu, uint8_t result) {
+  cpu->sf = result >> 7;
+}
+
+void port_out(cpu* cpu, uint8_t port_no, uint8_t value) {
+  // this function is not doing what specified in the 8080 doc.
+  // this uses values in d and e to find address in memory to print till $
+
+  // printf("\ncpu port out input %x %x \n", port_no, value);
+  uint8_t operation = cpu->c;
+  uint16_t addr = (cpu->d << 8) | cpu->e;
+  do {
+    printf("%c", cpu->memory[addr++]);
+  } while (cpu->memory[addr] != '$');
 }
 
 void step(cpu* cpu, FILE* op_fh) {
   // fetch the instruction using program counter
   int instruction = cpu->memory[cpu->pc];
-  printf("\ncpu runnning instruction %x", instruction);
+  printf("\ncpu runnning instruction %x \n", instruction);
 
   switch (instruction) {
 
@@ -379,8 +430,7 @@ void step(cpu* cpu, FILE* op_fh) {
   case 0x7e:
     printf("> MOV A, M\n");
     fprintf(op_fh, "MOV A, M\n");
-    cpu->a =
-        cpu->memory[cpu->h << 8 | cpu->l];
+    cpu->a = cpu->memory[cpu->h << 8 | cpu->l];
     cpu->pc += 1;
     break;
   case 0x46:
@@ -655,8 +705,14 @@ void step(cpu* cpu, FILE* op_fh) {
   case 0xc6:
     printf("> ADI data\n");
     fprintf(op_fh, "ADI data\n");
+    uint16_t tmp_a = cpu->a;
     cpu->a += cpu->memory[cpu->pc + 1];
     cpu->pc += 2;
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_auxiliary_carry_flag(cpu, tmp_a, cpu->memory[cpu->pc + 1], 4, cpu->cf);
+    set_carry_flag(cpu, tmp_a + cpu->memory[cpu->pc + 1]);
+    set_sign_flag(cpu, cpu->a);
     break;
   case 0x8f:
     printf("> ADC A\n");
@@ -709,7 +765,16 @@ void step(cpu* cpu, FILE* op_fh) {
   case 0xce:
     printf("> ACI data\n");
     fprintf(op_fh, "ACI data\n");
-    cpu->a = cpu->a + cpu->memory[cpu->pc + 1] + cpu->cf;
+    uint16_t tmp_a_2 = cpu->a;
+    uint16_t tmp_result = cpu->a + cpu->memory[cpu->pc + 1] + cpu->cf;
+    cpu->a = tmp_result;
+
+    set_zero_flag(cpu, cpu->a);
+    set_auxiliary_carry_flag(cpu, tmp_a_2, cpu->memory[cpu->pc + 1], 4, cpu->cf);
+    set_carry_flag(cpu, tmp_result);    
+    set_sign_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+
     cpu->pc += 2;
     break;
   case 0x97:
@@ -763,7 +828,18 @@ void step(cpu* cpu, FILE* op_fh) {
   case 0xd6:
     printf("> SUI data\n");
     fprintf(op_fh, "SUI data\n");
-    cpu->a -= cpu->memory[cpu->pc + 1];
+    uint8_t tmp_a_3 = cpu->a;
+    uint16_t sui_result = cpu->a - cpu->memory[cpu->pc + 1];
+    cpu->a = sui_result;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    // set_auxiliary_carry_flag(cpu, tmp_a_3, ~(cpu->memory[cpu->pc + 1]), 4, !cpu->cf); // TODO: check why inverted carry flag is sent to calculate half carry flag
+    cpu->acf = ((cpu->a & 0x0F) - (cpu->memory[cpu->pc+1] & 0x0F)) < 0; // TODO: check why this works and not above function
+    set_carry_flag(cpu, sui_result);
+    set_sign_flag(cpu, cpu->a);
+
+
     cpu->pc += 2;
     break;
   case 0x9f:
@@ -817,7 +893,17 @@ void step(cpu* cpu, FILE* op_fh) {
   case 0xde:
     printf("> SBI data\n");
     fprintf(op_fh, "SBI data\n");
-    cpu->a = cpu->a - cpu->memory[cpu->pc + 1] - cpu->cf;
+    uint16_t sbi_result = cpu->a - cpu->memory[cpu->pc + 1] - cpu->cf;
+    cpu->a = sbi_result;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    // set_auxiliary_carry_flag(cpu, tmp_a_3, ~(cpu->memory[cpu->pc + 1]), 4, !cpu->cf); // TODO: check why inverted carry flag is sent to calculate half carry flag
+    cpu->acf = ((cpu->a & 0x0F) - (cpu->memory[cpu->pc+1] & 0x0F - cpu->cf)) < 0; // TODO: check why this works and not above function
+    set_carry_flag(cpu, sbi_result);
+    set_sign_flag(cpu, cpu->a);
+
+
     cpu->pc += 2;
     break;
   case 0x3c:
@@ -1092,6 +1178,12 @@ void step(cpu* cpu, FILE* op_fh) {
     fprintf(op_fh, "ANI data\n");
     cpu->a = cpu->a & cpu->memory[cpu->pc + 1];
     cpu->pc += 2;
+    cpu->cf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    set_auxiliary_carry_flag(cpu, cpu->a, cpu->memory[cpu->pc + 1], 4, cpu->cf);
+
     break;
   case 0xaf:
     printf("> XRA A\n");
@@ -1161,9 +1253,13 @@ void step(cpu* cpu, FILE* op_fh) {
     printf("> XRI data\n");
     fprintf(op_fh, "XRI data\n");
     cpu->a = cpu->a ^ cpu->memory[cpu->pc + 1];
-    cpu->pc += 2;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_parity_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+
+    cpu->pc += 2;
     break;
   case 0xb7:
     printf("> ORA A\n");
@@ -1225,9 +1321,14 @@ void step(cpu* cpu, FILE* op_fh) {
     printf("> ORI data\n");
     fprintf(op_fh, "ORI data\n");
     cpu->a = cpu->a | cpu->memory[cpu->pc + 1];
-    cpu->pc += 2;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
     cpu->cf = 0;
     cpu->acf = 0;
+
+    cpu->pc += 2;
     break;
   case 0xbf:
     printf("> CMP A\n");
@@ -1292,21 +1393,36 @@ void step(cpu* cpu, FILE* op_fh) {
     set_carry_flag(cpu, cmp_result_8);
     set_zero_flag(cpu, cmp_result_8);
     cpu->pc += 1;
-    break; 
+    break;
   case 0xfe:
     printf("> CPI data\n");
     fprintf(op_fh, "CPI data\n");
     uint16_t cmp_result_9 = cpu->a - cpu->memory[cpu->pc + 1];
     set_carry_flag(cpu, cmp_result_9);
     set_zero_flag(cpu, cmp_result_9);
+
+    // set_carry_flag(cpu, tmp_a + cpu->memory[cpu->pc + 1]);
+    // TODO: use generic function aboe, but this is different
+    if (cpu->a < cpu->memory[cpu->pc + 1]) {
+      cpu->cf = 1;
+    }
+
+    // set_auxiliary_carry_flag(cpu, tmp_a, cpu->memory[cpu->pc + 1], 4, 0);
+    // TODO: use generic function aboe, but this is different
+    cpu->acf = ~(cpu->a ^ cmp_result_9 ^ cpu->memory[cpu->pc + 1]) & 0x10;
+
+    set_sign_flag(cpu, cmp_result_9);
+    set_parity_flag(cpu, (uint8_t) cmp_result_9);
+
+
     cpu->pc += 2;
     break;
   case 0x7:
     printf("> RLC\n");
     fprintf(op_fh, "RLC\n");
-    cpu -> cf = (cpu -> a) >> 7 & 0b00000001;
-    cpu -> a = (cpu -> a) << 1 | cpu -> cf;
-    cpu -> pc +=1 ;
+    cpu->cf = (cpu->a) >> 7 & 0b00000001;
+    cpu->a = (cpu->a) << 1 | cpu->cf;
+    cpu->pc += 1;
     break;
   case 0xf:
     printf("> RRC\n");
@@ -1335,7 +1451,7 @@ void step(cpu* cpu, FILE* op_fh) {
     printf("> CMA\n");
     fprintf(op_fh, "CMA\n");
     cpu->a = -cpu->a;
-    cpu->pc+=1;
+    cpu->pc += 1;
     break;
   case 0x3f:
     printf("> CMC\n");
@@ -1350,239 +1466,227 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc += 1;
     break;
   case 0xc3:
-    cpu->pc = cpu->memory[cpu->pc + 1] << 8 | cpu->memory[cpu->pc+1];
+    cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     break;
   case 0xc2:
-    if(cpu->zf == 0){
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+    if (cpu->zf == 0) {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xca:
-    if(cpu->zf == 1){
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+    if (cpu->zf == 1) {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xd2:
-    if(cpu->cf == 0){
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+    if (cpu->cf == 0) {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xda:
-    if(cpu->cf == 1){
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+    if (cpu->cf == 1) {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xe2:
-    if(cpu->pf == 0){
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+    if (cpu->pf == 0) {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xea:
-    if(cpu->pf == 1){
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+    if (cpu->pf == 1) {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xf2:
-    if(cpu->sf == 0){
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+    if (cpu->sf == 0) {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xfa:
-    if(cpu->sf == 1){
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+    if (cpu->sf == 1) {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xcd:
+    // TODO: correct implementation from the PDF
+    cpu->pc += 3;
     cpu->memory[cpu->sp - 1] = cpu->pc >> 8;
-    cpu->memory[cpu->sp - 2] = cpu->pc & 0xff;
+    cpu->memory[cpu->sp - 2] = cpu->pc & 0xFF;
+    // printf("cpu writing memory %x %x= %x %x= %x", cpu->pc ,cpu->sp-1, cpu->pc
+    // >> 8,
+    //  cpu->sp-2, cpu->pc & 0xFF);
+
     cpu->sp -= 2;
-    cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
+    cpu->pc = cpu->memory[cpu->pc - 1] << 8 | cpu->memory[cpu->pc - 2];
     break;
   case 0xc4:
-    if(cpu->zf == 0){
+    if (cpu->zf == 0) {
       cpu->memory[cpu->sp - 1] = cpu->pc >> 8;
       cpu->memory[cpu->sp - 2] = cpu->pc & 0xff;
       cpu->sp -= 2;
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xcc:
-    if(cpu->zf == 1){
+    if (cpu->zf == 1) {
       cpu->memory[cpu->sp - 1] = cpu->pc >> 8;
       cpu->memory[cpu->sp - 2] = cpu->pc & 0xff;
       cpu->sp -= 2;
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xd4:
-    if(cpu->cf == 0){
+    if (cpu->cf == 0) {
       cpu->memory[cpu->sp - 1] = cpu->pc >> 8;
       cpu->memory[cpu->sp - 2] = cpu->pc & 0xff;
       cpu->sp -= 2;
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xdc:
-    if(cpu->cf == 1){
+    if (cpu->cf == 1) {
       cpu->memory[cpu->sp - 1] = cpu->pc >> 8;
       cpu->memory[cpu->sp - 2] = cpu->pc & 0xff;
       cpu->sp -= 2;
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xe4:
-    if(cpu->pf == 0){
+    // cpu->pc += 1;
+    if (cpu->pf == 0) {
+      uint16_t next_two_bytes = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
+      cpu->pc += 3;
       cpu->memory[cpu->sp - 1] = cpu->pc >> 8;
       cpu->memory[cpu->sp - 2] = cpu->pc & 0xff;
       cpu->sp -= 2;
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+      cpu->pc = next_two_bytes;
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xec:
-    if(cpu->pf == 1){
+    if (cpu->pf == 1) {
       cpu->memory[cpu->sp - 1] = cpu->pc >> 8;
       cpu->memory[cpu->sp - 2] = cpu->pc & 0xff;
       cpu->sp -= 2;
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xf4:
-    if(cpu->sf == 0){
+    if (cpu->sf == 0) {
       cpu->memory[cpu->sp - 1] = cpu->pc >> 8;
       cpu->memory[cpu->sp - 2] = cpu->pc & 0xff;
       cpu->sp -= 2;
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xfc:
-    if(cpu->sf == 1){
+    if (cpu->sf == 1) {
       cpu->memory[cpu->sp - 1] = cpu->pc >> 8;
       cpu->memory[cpu->sp - 2] = cpu->pc & 0xff;
       cpu->sp -= 2;
-      cpu->pc = cpu->memory[cpu->pc+2] << 8 | cpu->memory[cpu->pc+1];
-    }
-    else {
+      cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
+    } else {
       cpu->pc += 3;
     }
     break;
   case 0xc9:
-    cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp+1] << 8;
+    printf("> RET\n");
+    printf("memory at %x %x %x", cpu->memory[cpu->sp], cpu->memory[cpu->sp + 1],
+        cpu->memory[0x7b7]);
+    cpu->pc = (cpu->memory[cpu->sp + 1] << 8) | cpu->memory[cpu->sp];
     cpu->sp += 2;
     break;
   case 0xc0:
-    if(cpu->zf == 0) {
-      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp+1] << 8;
+    if (cpu->zf == 0) {
+      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
-    }
-    else {
+    } else {
       cpu->pc += 1;
     }
     break;
   case 0xc8:
-    if(cpu->zf == 1) {
-      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp+1] << 8;
+    if (cpu->zf == 1) {
+      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
-    }
-    else {
+    } else {
       cpu->pc += 1;
     }
     break;
   case 0xd0:
-    if(cpu->cf == 0) {
-      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp+1] << 8;
+    if (cpu->cf == 0) {
+      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
-    }
-    else {
+    } else {
       cpu->pc += 1;
     }
     break;
   case 0xd8:
-    if(cpu->cf == 1) {
-      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp+1] << 8;
+    if (cpu->cf == 1) {
+      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
-    }
-    else {
+    } else {
       cpu->pc += 1;
     }
     break;
   case 0xe0:
-    if(cpu->pf == 0) {
-      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp+1] << 8;
+    if (cpu->pf == 0) {
+      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
-    }
-    else {
+    } else {
       cpu->pc += 1;
     }
     break;
   case 0xe8:
-    if(cpu->pf == 1) {
-      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp+1] << 8;
+    if (cpu->pf == 1) {
+      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
-    }
-    else {
+    } else {
       cpu->pc += 1;
     }
     break;
   case 0xf0:
-    if(cpu->sf == 0) {
-      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp+1] << 8;
+    if (cpu->sf == 0) {
+      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
-    }
-    else {
+    } else {
       cpu->pc += 1;
     }
     break;
   case 0xf8:
-    if(cpu->sf == 1) {
-      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp+1] << 8;
+    if (cpu->sf == 1) {
+      cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
-    }
-    else {
+    } else {
       cpu->pc += 1;
     }
     break;
@@ -1656,48 +1760,48 @@ void step(cpu* cpu, FILE* op_fh) {
     fprintf(op_fh, "PCHL\n");
     cpu->pc = cpu->h << 8 | cpu->l;
     break;
-  
+
   case 0xc5:
     printf("> PUSH BC \n");
     fprintf(op_fh, "PUSH BC\n");
-    cpu->memory[cpu->sp-1] = cpu->b;
-    cpu->memory[cpu->sp-2] = cpu->c;
+    cpu->memory[cpu->sp - 1] = cpu->b;
+    cpu->memory[cpu->sp - 2] = cpu->c;
     cpu->sp -= 2;
     cpu->pc += 1;
     break;
   case 0xd5:
     printf("> PUSH DE\n");
     fprintf(op_fh, "PUSH DE\n");
-    cpu->memory[cpu->sp-1] = cpu->d;
-    cpu->memory[cpu->sp-2] = cpu->e;
+    cpu->memory[cpu->sp - 1] = cpu->d;
+    cpu->memory[cpu->sp - 2] = cpu->e;
     cpu->sp -= 2;
     cpu->pc += 1;
     break;
   case 0xe5:
     printf("> PUSH HL\n");
     fprintf(op_fh, "PUSH HL\n");
-    cpu->memory[cpu->sp-1] = cpu->h;
-    cpu->memory[cpu->sp-2] = cpu->l;
+    cpu->memory[cpu->sp - 1] = cpu->h;
+    cpu->memory[cpu->sp - 2] = cpu->l;
     cpu->sp -= 2;
     cpu->pc += 1;
     break;
-  
+
   case 0xf5:
     printf("> PUSH PSW\n");
     fprintf(op_fh, "PUSH PSW\n");
-    cpu->memory[cpu->sp-1] = cpu->a;
+    cpu->memory[cpu->sp - 1] = cpu->a;
     uint8_t psw = 0;
-    psw = cpu->sf << 7 | cpu->zf << 6 | cpu->acf << 4 | cpu->pf << 2 | cpu-> cf;
-    cpu->memory[cpu->sp-2] = psw;
+    psw = cpu->sf << 7 | cpu->zf << 6 | cpu->acf << 4 | cpu->pf << 2 | cpu->cf;
+    cpu->memory[cpu->sp - 2] = psw;
     cpu->sp -= 2;
     cpu->pc += 1;
     break;
-  
+
   case 0xc1:
     printf("> POP BC\n");
     fprintf(op_fh, "POP BC\n");
     cpu->c = cpu->memory[cpu->sp];
-    cpu->b = cpu->memory[cpu->sp+1];
+    cpu->b = cpu->memory[cpu->sp + 1];
     cpu->sp += 2;
     cpu->pc += 1;
     break;
@@ -1705,7 +1809,7 @@ void step(cpu* cpu, FILE* op_fh) {
     printf("> POP DE\n");
     fprintf(op_fh, "POP DE\n");
     cpu->e = cpu->memory[cpu->sp];
-    cpu->d = cpu->memory[cpu->sp+1];
+    cpu->d = cpu->memory[cpu->sp + 1];
     cpu->sp += 2;
     cpu->pc += 1;
     break;
@@ -1713,11 +1817,11 @@ void step(cpu* cpu, FILE* op_fh) {
     printf("> POP HL\n");
     fprintf(op_fh, "POP HL\n");
     cpu->l = cpu->memory[cpu->sp];
-    cpu->h = cpu->memory[cpu->sp+1];
+    cpu->h = cpu->memory[cpu->sp + 1];
     cpu->sp += 2;
     cpu->pc += 1;
     break;
-  
+
   case 0xf1:
     printf("> POP PSW\n");
     fprintf(op_fh, "POP PSW \n");
@@ -1726,23 +1830,23 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->acf = cpu->memory[cpu->sp] >> 4 & 1;
     cpu->zf = cpu->memory[cpu->sp] >> 6 & 1;
     cpu->sf = cpu->memory[cpu->sp] >> 7 & 1;
-    cpu->a = cpu->memory[cpu->sp+1];
+    cpu->a = cpu->memory[cpu->sp + 1];
     cpu->sp += 2;
     cpu->pc += 1;
     break;
-  
+
   case 0xe3:
     printf("> XTHL\n");
     fprintf(op_fh, "XTHL\n");
     uint8_t tmp = cpu->memory[cpu->sp];
     cpu->memory[cpu->sp] = cpu->l;
     cpu->l = tmp;
-    tmp = cpu->memory[cpu->sp+1];
-    cpu->memory[cpu->sp+1] = cpu->h;
+    tmp = cpu->memory[cpu->sp + 1];
+    cpu->memory[cpu->sp + 1] = cpu->h;
     cpu->h = tmp;
     cpu->pc += 1;
     break;
-  
+
   case 0xf9:
     printf("> SPHL\n");
     fprintf(op_fh, "SPHL\n");
@@ -1755,35 +1859,39 @@ void step(cpu* cpu, FILE* op_fh) {
     fprintf(op_fh, "IN data\n");
     break;
 
-  case 0xd3: // NOTE: not implemented
+  case 0xd3:
     printf("> OUT data\n");
     fprintf(op_fh, "OUT data\n");
+    uint8_t port = cpu->memory[cpu->pc + 1];
+    uint8_t data = cpu->a;
+    port_out(cpu, port, data);
+    cpu->pc += 2;
     break;
-  
+
   case 0xfb:
     printf("> EI\n");
     fprintf(op_fh, "EI\n");
-    cpu-> interrupt_enable = 1;
-    cpu -> interrupt_delay = 1;
+    cpu->interrupt_enable = 1;
+    cpu->interrupt_delay = 1;
     cpu->pc += 1;
     break;
-  
+
   case 0xf3:
     printf("> DI\n");
     fprintf(op_fh, "DI\n");
-    cpu-> interrupt_enable = 0;
-    cpu -> interrupt_delay = 0;
+    cpu->interrupt_enable = 0;
+    cpu->interrupt_delay = 0;
     cpu->pc += 1;
     break;
-  
+
   case 0x76:
     printf("> HLT\n");
     fprintf(op_fh, "HLT\n");
     cpu->halted = 1;
     cpu->pc += 1;
     break;
-  
-  case 0x0: 
+
+  case 0x0:
     printf("> NOP\n");
     fprintf(op_fh, "NOP\n");
     cpu->pc += 1;
@@ -1793,10 +1901,8 @@ void step(cpu* cpu, FILE* op_fh) {
   }
 }
 
-
-
 void debug_cpu(cpu* cpu) {
-  printf("------------cpu---------------\n");
+  printf("\n------------cpu---------------\n");
   printf("A : %x\n", cpu->a);
   printf("B : %x\n", cpu->b);
   printf("C : %x\n", cpu->c);
@@ -1810,13 +1916,14 @@ void debug_cpu(cpu* cpu) {
   printf("SF: %x\n", cpu->sf);
   printf("PF: %x\n", cpu->pf);
   printf("ACF: %x\n", cpu->acf);
+  printf("SP: %x\n", cpu->sp);
   printf("---------------------------\n");
 }
 
-
 // int main(int argc, char** argv) {
 //   printf(
-//       "starting program %d %d %d \n ", sizeof(cpu), sizeof(int), sizeof(bool));
+//       "starting program %d %d %d \n ", sizeof(cpu), sizeof(int),
+//       sizeof(bool));
 //   cpu* cpu = malloc(50);
 
 //   cpu_init(cpu, ROM_NAME);
