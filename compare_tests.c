@@ -27,6 +27,7 @@ static void chip_port_out(void* userdata, uint8_t port, uint8_t value) {
 
   if (port == 0) {
     test_finished = 1;
+    exit(1);
   } else if (port == 1) {
     uint8_t operation = c->c;
 
@@ -156,8 +157,12 @@ int main() {
   cpu->memory[0x6] = 0x1;
   cpu->memory[0x7] = 0xC9;
   
+  for (int i = 0; i < 652; i++) {
+    if(test_finished){
+      printf("\n-------------------test finished with port out 0-----------------------\n");
+      return 0;
+    }
 
-  for (int i = 0; i < 500; i++) {
     printf("\n---- step %d ", i);
     i8080_step(chip);
     step(cpu, op_fh);
@@ -174,6 +179,6 @@ int main() {
   }
 
   fclose(op_fh);
-  printf("\nTest finished\n");
+  printf("\nTest finished after limited steps\n");
   return 0;
 }

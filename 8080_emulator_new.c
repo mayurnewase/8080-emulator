@@ -670,6 +670,7 @@ void step(cpu* cpu, FILE* op_fh) {
     set_zero_flag(cpu, cpu->a);
     set_sign_flag(cpu, cpu->a);
     set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a1, tmp_a1, 0);
     set_auxiliary_carry_flag(cpu, tmp_a1, tmp_a1, 0);
 
     cpu->pc += 1;
@@ -684,6 +685,7 @@ void step(cpu* cpu, FILE* op_fh) {
     set_zero_flag(cpu, cpu->a);
     set_sign_flag(cpu, cpu->a);
     set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a2, cpu->b, 0);
     set_auxiliary_carry_flag(cpu, tmp_a2, cpu->b, 0);
 
     cpu->pc += 1;
@@ -840,49 +842,114 @@ void step(cpu* cpu, FILE* op_fh) {
   case 0x97:
     printf("> SUB A\n");
     fprintf(op_fh, "SUB A\n");
+    uint8_t tmp_a_13 = cpu->a;
     cpu->a -= cpu->a;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_13, cpu->a, 1);
+    set_auxiliary_carry_flag(cpu, tmp_a_13, ~(cpu->a), 1);
+
     cpu->pc += 1;
     break;
   case 0x90:
     printf("> SUB B\n");
     fprintf(op_fh, "SUB B\n");
+    uint8_t tmp_a_11 = cpu->a;
     cpu->a -= cpu->b;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_11, cpu->b, 1);
+    set_auxiliary_carry_flag(cpu, tmp_a_11, ~(cpu->b), 1);
+
     cpu->pc += 1;
     break;
   case 0x91:
     printf("> SUB C\n");
     fprintf(op_fh, "SUB C\n");
+    uint8_t tmp_a_12 = cpu->a;
     cpu->a -= cpu->c;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_12, cpu->c, 1);
+    set_auxiliary_carry_flag(cpu, tmp_a_12, ~(cpu->c), 1);
+
     cpu->pc += 1;
     break;
   case 0x92:
     printf("> SUB D\n");
     fprintf(op_fh, "SUB D\n");
+    uint8_t tmp_a_14 = cpu->a;
+
     cpu->a -= cpu->d;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_14, cpu->d, 1);
+    set_auxiliary_carry_flag(cpu, tmp_a_14, ~(cpu->d), 1);
+
     cpu->pc += 1;
     break;
   case 0x93:
     printf("> SUB E\n");
     fprintf(op_fh, "SUB E\n");
+    uint8_t tmp_a_15 = cpu->a;
     cpu->a -= cpu->e;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_15, cpu->e, 1);
+    set_auxiliary_carry_flag(cpu, tmp_a_15, ~(cpu->e), 1);
+
     cpu->pc += 1;
     break;
   case 0x94:
     printf("> SUB H\n");
     fprintf(op_fh, "SUB H\n");
+    uint8_t tmp_a_16 = cpu->a;
     cpu->a -= cpu->h;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_16, cpu->h, 1);
+    set_auxiliary_carry_flag(cpu, tmp_a_16, ~(cpu->h), 1);
+
     cpu->pc += 1;
     break;
   case 0x95:
     printf("> SUB L\n");
     fprintf(op_fh, "SUB L\n");
+    uint8_t tmp_a_17 = cpu->a;
     cpu->a -= cpu->l;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_17, cpu->l, 1);
+    set_auxiliary_carry_flag(cpu, tmp_a_17, ~(cpu->l), 1);
+
     cpu->pc += 1;
     break;
   case 0x96:
     printf("> SUB M\n");
     fprintf(op_fh, "SUB M\n");
+    uint8_t tmp_a_18 = cpu->a;
     cpu->a -= cpu->memory[cpu->h << 8 | cpu->l];
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_18, cpu->memory[cpu->h << 8 | cpu->l], 1);
+    set_auxiliary_carry_flag(cpu, tmp_a_18, ~(cpu->memory[cpu->h << 8 | cpu->l]), 1);
+
     cpu->pc += 1;
     break;
   case 0xd6:

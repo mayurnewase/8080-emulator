@@ -118,7 +118,7 @@ static inline void run_test(
 
   test_finished = 0;
   int steps = 0;
-  while (!test_finished && steps < 10) {
+  while (!test_finished && steps < 652) {
     nb_instructions += 1;
 
     // uncomment following line to have a debug output of machine state

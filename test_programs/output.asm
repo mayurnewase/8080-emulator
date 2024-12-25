@@ -124,3 +124,19 @@ ADD L
 ADD A
 CPI data
 SUB B
+SUB C
+SUB D
+SUB E
+SUB H
+SUB L
+CPI data
+SUB A
+MVI A, data
+ADD A
+MVI B, data
+MVI C, data
+MVI D, data
+MVI E, data
+MVI H, data
+MVI L, data
+ADC B
