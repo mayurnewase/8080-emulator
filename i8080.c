@@ -178,9 +178,13 @@ static inline bool parity(uint8_t val) {
 // returns if there was a carry between bit "bit_no" and "bit_no - 1" when
 // executing "a + b + cy"
 static inline bool carry(int bit_no, uint8_t a, uint8_t b, bool cy) {
-  int16_t result = a + b + cy;
+  
+  uint16_t result = a + b + cy;
   int16_t carry = result ^ a ^ b;
+  if (bit_no == 8) printf("\n chip carry %d %d %d %d", a, b, cy, carry & (1 << bit_no));
+
   return carry & (1 << bit_no);
+   // 100000000
 }
 
 // adds a value (+ an optional carry flag) to a register
@@ -210,7 +214,7 @@ static inline void i8080_dad(i8080* const c, uint16_t val) {
 // increments a byte
 static inline uint8_t i8080_inr(i8080* const c, uint8_t val) {
   uint8_t result = val + 1;
-  c->hf = (result & 0xF) == 0; // current
+  c->hf = (result & 0xF) == 0;
   SET_ZSP(c, result);
   return result;
 }

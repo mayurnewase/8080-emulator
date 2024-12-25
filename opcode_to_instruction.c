@@ -1114,7 +1114,7 @@ void replace_r1_r2_registers(struct instruction instruction,
   char opcode[9];
   strcpy(opcode, instruction.opcode);
   char* dst_reg = strstr(opcode, substr1);
-  char* src_reg = strstr(opcode, substr2);
+  char* src_reg_position = strstr(opcode, substr2);
 
   for (int j = 0; j < 7; j++) {
     for (int k = 0; k < 7; k++) {
@@ -1124,8 +1124,9 @@ void replace_r1_r2_registers(struct instruction instruction,
 
       char* src_reg_name_position = strstr(name, src_reg_name);
 
-      if (src_reg != NULL) {
-        memmove(src_reg, registers[j].value, 3);
+      if (src_reg_position != NULL) {
+    //   printf("\n src reg pos %s %s", src_reg_position, substr2);
+        memmove(src_reg_position, registers[j].value, 3);
         // replace_string_with_len(opcode, substr2, registers[j].value, 3);
 
         // if (src_reg_name_position != NULL) {
@@ -1143,6 +1144,7 @@ void replace_r1_r2_registers(struct instruction instruction,
         if (dst_reg_name_position != NULL) {
           memmove(dst_reg_name_position, registers[k].name, 1);
           memmove(dst_reg_name_position + 1, dst_reg_name_position + 2, 10);
+        // replace_string_with_len(name, src_reg_name, registers[j].name, 2);
         }
       }
       int instruction_opcde = strtol(opcode, NULL, 2);
@@ -1338,8 +1340,9 @@ int main() {
     if (src_reg_position != NULL || dst_reg_position != NULL) {
       printf("r1 r2 proc \n");
       replace_r1_r2_registers(
-          k, registers, src_reg_name, dst_reg_name, substr2, substr1, f);
-    } else if (single_register_position != NULL && memory_position != NULL) {
+          k, registers, src_reg_name, dst_reg_name, substr1, substr2, f);
+    } 
+    else if (single_register_position != NULL && memory_position != NULL) {
       printf("r M proc \n");
       replace_r_M_registers(k, registers, src_reg_name, dst_reg_name, substr1,
           substr2, single_register_name, memory_name, f);

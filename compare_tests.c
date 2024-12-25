@@ -157,7 +157,7 @@ int main() {
   cpu->memory[0x7] = 0xC9;
   
 
-  for (int i = 0; i < 90; i++) {
+  for (int i = 0; i < 500; i++) {
     printf("\n---- step %d ", i);
     i8080_step(chip);
     step(cpu, op_fh);
