@@ -778,49 +778,115 @@ void step(cpu* cpu, FILE* op_fh) {
   case 0x8f:
     printf("> ADC A\n");
     fprintf(op_fh, "ADC A\n");
+    uint8_t tmp_a9 = cpu->a;
+
     cpu->a = cpu->a + cpu->a + cpu->cf;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_auxiliary_carry_flag(cpu, tmp_a9, cpu->a, cpu->cf);
+    set_carry_flag(cpu, tmp_a9, tmp_a9, cpu->cf);
+    set_sign_flag(cpu, cpu->a);
+
     cpu->pc += 1;
     break;
   case 0x88:
     printf("> ADC B\n");
     fprintf(op_fh, "ADC B\n");
+    uint8_t tmp_a16 = cpu->a;
+
     cpu->a = cpu->a + cpu->b + cpu->cf;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_auxiliary_carry_flag(cpu, tmp_a16, cpu->b, cpu->cf);
+    set_carry_flag(cpu, tmp_a16, cpu->b, cpu->cf);
+    set_sign_flag(cpu, cpu->a);
+
     cpu->pc += 1;
     break;
   case 0x89:
     printf("> ADC C\n");
     fprintf(op_fh, "ADC C\n");
+    uint8_t tmp_a11 = cpu->a;
     cpu->a = cpu->a + cpu->c + cpu->cf;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_auxiliary_carry_flag(cpu, tmp_a11, cpu->c, cpu->cf);
+    set_carry_flag(cpu, tmp_a11, cpu->c, cpu->cf);
+    set_sign_flag(cpu, cpu->a);
+
     cpu->pc += 1;
     break;
   case 0x8a:
     printf("> ADC D\n");
     fprintf(op_fh, "ADC D\n");
+    uint8_t tmp_a12 = cpu->a;
     cpu->a = cpu->a + cpu->d + cpu->cf;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_auxiliary_carry_flag(cpu, tmp_a12, cpu->c, cpu->cf);
+    set_carry_flag(cpu, tmp_a12, cpu->c, cpu->cf);
+    set_sign_flag(cpu, cpu->a);
+
     cpu->pc += 1;
     break;
   case 0x8b:
     printf("> ADC E\n");
     fprintf(op_fh, "ADC E\n");
+    uint8_t tmp_a13 = cpu->a;
     cpu->a = cpu->a + cpu->e + cpu->cf;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_auxiliary_carry_flag(cpu, tmp_a13, cpu->e, cpu->cf);
+    set_carry_flag(cpu, tmp_a13, cpu->e, cpu->cf);
+    set_sign_flag(cpu, cpu->a);
+
     cpu->pc += 1;
     break;
   case 0x8c:
     printf("> ADC H\n");
     fprintf(op_fh, "ADC H\n");
+    uint8_t tmp_a14 = cpu->a;
     cpu->a = cpu->a + cpu->h + cpu->cf;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_auxiliary_carry_flag(cpu, tmp_a14, cpu->h, cpu->cf);
+    set_carry_flag(cpu, tmp_a14, cpu->h, cpu->cf);
+    set_sign_flag(cpu, cpu->a);
+
     cpu->pc += 1;
     break;
   case 0x8d:
     printf("> ADC L\n");
     fprintf(op_fh, "ADC L\n");
+    uint8_t tmp_a15 = cpu->a;
     cpu->a = cpu->a + cpu->l + cpu->cf;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_auxiliary_carry_flag(cpu, tmp_a15, cpu->l, cpu->cf);
+    set_carry_flag(cpu, tmp_a15, cpu->l, cpu->cf);
+    set_sign_flag(cpu, cpu->a);
+
     cpu->pc += 1;
     break;
   case 0x8e:
     printf("> ADC M\n");
     fprintf(op_fh, "ADC M\n");
+    uint8_t tmp_a17 = cpu->a;
     cpu->a = cpu->a + cpu->memory[cpu->h << 8 | cpu->l] + cpu->cf;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_auxiliary_carry_flag(cpu, tmp_a17, cpu->memory[cpu->h << 8 | cpu->l], cpu->cf);
+    set_carry_flag(cpu, tmp_a17, cpu->memory[cpu->h << 8 | cpu->l], cpu->cf);
+    set_sign_flag(cpu, cpu->a);
+
     cpu->pc += 1;
     break;
   case 0xce:
@@ -948,7 +1014,8 @@ void step(cpu* cpu, FILE* op_fh) {
     set_zero_flag(cpu, cpu->a);
     set_parity_flag(cpu, cpu->a);
     set_carry_flag(cpu, tmp_a_18, cpu->memory[cpu->h << 8 | cpu->l], 1);
-    set_auxiliary_carry_flag(cpu, tmp_a_18, ~(cpu->memory[cpu->h << 8 | cpu->l]), 1);
+    set_auxiliary_carry_flag(
+        cpu, tmp_a_18, ~(cpu->memory[cpu->h << 8 | cpu->l]), 1);
 
     cpu->pc += 1;
     break;
@@ -973,6 +1040,10 @@ void step(cpu* cpu, FILE* op_fh) {
     printf("> SBB A\n");
     fprintf(op_fh, "SBB A\n");
     cpu->a = cpu->a - cpu->a - cpu->cf;
+
+    // TODO: fix flags
+    
+
     cpu->pc += 1;
     break;
   case 0x98:

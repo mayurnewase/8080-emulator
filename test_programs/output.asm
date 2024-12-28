@@ -140,3 +140,27 @@ MVI E, data
 MVI H, data
 MVI L, data
 ADC B
+MVI B, data
+ADD B
+ADD B
+ADC C
+ADD B
+ADD B
+ADC D
+ADD B
+ADD B
+ADC E
+ADD B
+ADD B
+ADC H
+ADD B
+ADD B
+ADC L
+ADD B
+ADD B
+ADC A
+CPI data
+MVI A, data
+ADD A
+MVI B, data
+SBB B

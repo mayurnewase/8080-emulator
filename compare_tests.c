@@ -163,7 +163,7 @@ int main() {
       return 0;
     }
 
-    printf("\n---- step %d ", i);
+    printf("\n---- step %d/%d ", i, 652);
     i8080_step(chip);
     step(cpu, op_fh);
 
