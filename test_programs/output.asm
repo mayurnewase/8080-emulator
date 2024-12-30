@@ -164,3 +164,71 @@ MVI A, data
 ADD A
 MVI B, data
 SBB B
+MVI B, data
+ADD B
+SBB C
+ADD B
+SBB D
+ADD B
+SBB E
+ADD B
+SBB H
+ADD B
+SBB L
+CPI data
+MVI A, data
+ADD A
+SBB A
+CPI data
+MVI A, data
+MVI B, data
+MVI C, data
+MVI D, data
+MVI E, data
+MVI H, data
+MVI L, data
+ANA B
+ANA C
+ANA D
+ANA E
+ANA H
+ANA L
+ANA A
+CPI data
+XRA A
+MVI B, data
+MVI C, data
+MVI D, data
+MVI E, data
+MVI H, data
+MVI L, data
+ORA B
+ORA C
+ORA D
+ORA E
+ORA H
+ORA L
+ORA A
+CPI data
+MVI A, data
+MVI H, data
+MVI L, data
+XRA B
+XRA C
+XRA D
+XRA E
+XRA H
+XRA L
+CPI data
+XRA A
+MVI B, data
+MVI C, data
+MVI D, data
+MVI E, data
+MVI H, data
+MVI L, data
+MOV M, B
+MVI B, data
+MOV B, M
+MVI A, data
+CMP B

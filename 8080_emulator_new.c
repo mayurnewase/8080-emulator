@@ -883,7 +883,8 @@ void step(cpu* cpu, FILE* op_fh) {
 
     set_zero_flag(cpu, cpu->a);
     set_parity_flag(cpu, cpu->a);
-    set_auxiliary_carry_flag(cpu, tmp_a17, cpu->memory[cpu->h << 8 | cpu->l], cpu->cf);
+    set_auxiliary_carry_flag(
+        cpu, tmp_a17, cpu->memory[cpu->h << 8 | cpu->l], cpu->cf);
     set_carry_flag(cpu, tmp_a17, cpu->memory[cpu->h << 8 | cpu->l], cpu->cf);
     set_sign_flag(cpu, cpu->a);
 
@@ -1039,53 +1040,125 @@ void step(cpu* cpu, FILE* op_fh) {
   case 0x9f:
     printf("> SBB A\n");
     fprintf(op_fh, "SBB A\n");
+    uint8_t tmp_a_19 = cpu->a;
     cpu->a = cpu->a - cpu->a - cpu->cf;
 
-    // TODO: fix flags
-    
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_19, ~(cpu->a), !cpu->cf);
+    set_auxiliary_carry_flag(cpu, tmp_a_19, ~(cpu->a), !cpu->cf);
+    cpu->cf = !cpu->cf;
 
     cpu->pc += 1;
     break;
   case 0x98:
     printf("> SBB B\n");
     fprintf(op_fh, "SBB B\n");
+    uint8_t tmp_a_20 = cpu->a;
+
     cpu->a = cpu->a - cpu->b - cpu->cf;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_20, ~(cpu->b), !cpu->cf);
+    set_auxiliary_carry_flag(cpu, tmp_a_20, ~(cpu->b), !cpu->cf);
+    cpu->cf = !cpu->cf;
+
     cpu->pc += 1;
     break;
   case 0x99:
     printf("> SBB C\n");
     fprintf(op_fh, "SBB C\n");
+    uint8_t tmp_a_21 = cpu->a;
+
     cpu->a = cpu->a - cpu->c - cpu->cf;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_21, ~(cpu->c), !cpu->cf);
+    set_auxiliary_carry_flag(cpu, tmp_a_21, ~(cpu->c), !cpu->cf);
+    cpu->cf = !cpu->cf;
+
     cpu->pc += 1;
     break;
   case 0x9a:
     printf("> SBB D\n");
     fprintf(op_fh, "SBB D\n");
+    uint8_t tmp_a_22 = cpu->a;
+
     cpu->a = cpu->a - cpu->d - cpu->cf;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_22, ~(cpu->d), !cpu->cf);
+    set_auxiliary_carry_flag(cpu, tmp_a_22, ~(cpu->d), !cpu->cf);
+    cpu->cf = !cpu->cf;
+
     cpu->pc += 1;
     break;
   case 0x9b:
     printf("> SBB E\n");
     fprintf(op_fh, "SBB E\n");
+    uint8_t tmp_a_23 = cpu->a;
     cpu->a = cpu->a - cpu->e - cpu->cf;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_23, ~(cpu->e), !cpu->cf);
+    set_auxiliary_carry_flag(cpu, tmp_a_23, ~(cpu->e), !cpu->cf);
+    cpu->cf = !cpu->cf;
+
     cpu->pc += 1;
     break;
   case 0x9c:
     printf("> SBB H\n");
     fprintf(op_fh, "SBB H\n");
+    uint8_t tmp_a_24 = cpu->a;
     cpu->a = cpu->a - cpu->h - cpu->cf;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_24, ~(cpu->h), !cpu->cf);
+    set_auxiliary_carry_flag(cpu, tmp_a_24, ~(cpu->h), !cpu->cf);
+    cpu->cf = !cpu->cf;
+
     cpu->pc += 1;
     break;
   case 0x9d:
     printf("> SBB L\n");
     fprintf(op_fh, "SBB L\n");
+    uint8_t tmp_a_25 = cpu->a;
     cpu->a = cpu->a - cpu->l - cpu->cf;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_25, ~(cpu->l), !cpu->cf);
+    set_auxiliary_carry_flag(cpu, tmp_a_25, ~(cpu->l), !cpu->cf);
+    cpu->cf = !cpu->cf;
+
     cpu->pc += 1;
     break;
   case 0x9e:
     printf("> SBB M\n");
+    uint8_t tmp_a_26 = cpu->a;
     fprintf(op_fh, "SBB M\n");
     cpu->a = cpu->a - cpu->memory[cpu->h << 8 | cpu->l] - cpu->cf;
+
+    set_sign_flag(cpu, cpu->a);
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_carry_flag(cpu, tmp_a_26, ~(cpu->b), !cpu->cf);
+    set_auxiliary_carry_flag(
+        cpu, tmp_a_26, ~(cpu->memory[cpu->h << 8 | cpu->l]), !cpu->cf);
+    cpu->cf = !cpu->cf;
+
     cpu->pc += 1;
     break;
   case 0xde:
@@ -1433,43 +1506,99 @@ void step(cpu* cpu, FILE* op_fh) {
   case 0xa7:
     printf("> ANA A\n");
     fprintf(op_fh, "ANA A\n");
+    uint8_t tmp_a_28 = cpu->a;
     cpu->a = cpu->a & cpu->a;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    cpu->cf = 0;
+    cpu->acf = ((tmp_a_28 | tmp_a_28) & 0x08) != 0;
+
     cpu->pc += 1;
     break;
   case 0xa0:
     printf("> ANA B\n");
     fprintf(op_fh, "ANA B\n");
+    uint8_t tmp_a_29 = cpu->a;
     cpu->a = cpu->a & cpu->b;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    cpu->cf = 0;
+    cpu->acf = ((tmp_a_29 | cpu->b) & 0x08) != 0;
+
     cpu->pc += 1;
     break;
   case 0xa1:
     printf("> ANA C\n");
     fprintf(op_fh, "ANA C\n");
+    uint8_t tmp_a_30 = cpu->a;
     cpu->a = cpu->a & cpu->c;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    cpu->cf = 0;
+    cpu->acf = ((tmp_a_30 | cpu->c) & 0x08) != 0;
+
     cpu->pc += 1;
     break;
   case 0xa2:
     printf("> ANA D\n");
     fprintf(op_fh, "ANA D\n");
+    uint8_t tmp_a_31 = cpu->a;
     cpu->a = cpu->a & cpu->d;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    cpu->cf = 0;
+    cpu->acf = ((tmp_a_31 | cpu->d) & 0x08) != 0;
+
     cpu->pc += 1;
     break;
   case 0xa3:
     printf("> ANA E\n");
     fprintf(op_fh, "ANA E\n");
+    uint8_t tmp_a_32 = cpu->a;
     cpu->a = cpu->a & cpu->e;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    cpu->cf = 0;
+    cpu->acf = ((tmp_a_32 | cpu->e) & 0x08) != 0;
+
     cpu->pc += 1;
     break;
   case 0xa4:
     printf("> ANA H\n");
     fprintf(op_fh, "ANA H\n");
+    uint8_t tmp_a_33 = cpu->a;
     cpu->a = cpu->a & cpu->h;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    cpu->cf = 0;
+    cpu->acf = ((tmp_a_33 | cpu->h) & 0x08) != 0;
+
     cpu->pc += 1;
     break;
   case 0xa5:
     printf("> ANA L\n");
     fprintf(op_fh, "ANA L\n");
+    uint8_t tmp_a_34 = cpu->a;
     cpu->a = cpu->a & cpu->l;
+
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    cpu->cf = 0;
+    cpu->acf = ((tmp_a_34 | cpu->l) & 0x08) != 0;
+
     cpu->pc += 1;
     break;
   case 0xe6:
@@ -1491,6 +1620,9 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
     break;
   case 0xa8:
     printf("> XRA B\n");
@@ -1499,6 +1631,9 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
     break;
   case 0xa9:
     printf("> XRA C\n");
@@ -1507,6 +1642,9 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
     break;
   case 0xaa:
     printf("> XRA D\n");
@@ -1515,6 +1653,9 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
     break;
   case 0xab:
     printf("> XRA E\n");
@@ -1523,6 +1664,9 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
     break;
   case 0xac:
     printf("> XRA H\n");
@@ -1531,6 +1675,9 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
     break;
   case 0xad:
     printf("> XRA L\n");
@@ -1539,6 +1686,9 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
     break;
   case 0xae:
     printf("> XRA M\n");
@@ -1547,6 +1697,9 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
     break;
   case 0xee:
     printf("> XRI data\n");
@@ -1564,57 +1717,78 @@ void step(cpu* cpu, FILE* op_fh) {
     printf("> ORA A\n");
     fprintf(op_fh, "ORA A\n");
     cpu->a = cpu->a | cpu->a;
-    cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    cpu->pc += 1;
     break;
   case 0xb0:
     printf("> ORA B\n");
     fprintf(op_fh, "ORA B\n");
     cpu->a = cpu->a | cpu->b;
-    cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    cpu->pc += 1;
     break;
   case 0xb1:
     printf("> ORA C\n");
     fprintf(op_fh, "ORA C\n");
     cpu->a = cpu->a | cpu->c;
-    cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    cpu->pc += 1;
     break;
   case 0xb2:
     printf("> ORA D\n");
     fprintf(op_fh, "ORA D\n");
     cpu->a = cpu->a | cpu->d;
-    cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    cpu->pc += 1;
     break;
   case 0xb3:
     printf("> ORA E\n");
     fprintf(op_fh, "ORA E\n");
     cpu->a = cpu->a | cpu->e;
-    cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    cpu->pc += 1;
     break;
   case 0xb4:
     printf("> ORA H\n");
     fprintf(op_fh, "ORA H\n");
     cpu->a = cpu->a | cpu->h;
-    cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    cpu->pc += 1;
     break;
   case 0xb5:
     printf("> ORA L\n");
     fprintf(op_fh, "ORA L\n");
     cpu->a = cpu->a | cpu->l;
-    cpu->pc += 1;
     cpu->cf = 0;
     cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    cpu->pc += 1;
     break;
   case 0xf6:
     printf("> ORI data\n");
