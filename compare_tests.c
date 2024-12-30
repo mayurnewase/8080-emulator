@@ -110,7 +110,7 @@ int compare_registers(i8080* chip, cpu* cpu) {
 
   for(int i=0; i<MEMORY_SIZE; i++) {
     if (memory[i] != cpu->memory[i]) {
-      printf("memory is not equal %d %x %x \n", i, memory[i], cpu->memory[i]);
+      printf("memory is not equal %d %b %b \n", i, memory[i], cpu->memory[i]);
       return 0;
     }
   }
@@ -179,6 +179,6 @@ int main() {
   }
 
   fclose(op_fh);
-  printf("\nTest finished after limited steps\n");
+  printf("\nTest finished !!!! \n");
   return 0;
 }

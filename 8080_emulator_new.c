@@ -518,7 +518,7 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc += 1;
     break;
 
-  case 0x3e: // MVI A, data
+  case 0x3e:
     printf("> MVI A, data\n");
     fprintf(op_fh, "MVI A, data\n");
     cpu->a = cpu->memory[cpu->pc + 1];
@@ -598,7 +598,7 @@ void step(cpu* cpu, FILE* op_fh) {
     fprintf(op_fh, "LDA addr\n");
     cpu->a =
         cpu->memory[cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1]];
-    cpu->pc + 3;
+    cpu->pc += 3;
     break;
   case 0x32:
     printf("> STA addr\n");
@@ -1445,10 +1445,12 @@ void step(cpu* cpu, FILE* op_fh) {
     fprintf(op_fh, "DAD BC\n");
     uint16_t bc_3 = cpu->b << 8 | cpu->c;
     uint16_t hl_3 = cpu->h << 8 | cpu->l;
-    uint16_t sum = bc_3 + hl_3;
+    uint32_t sum = bc_3 + hl_3;
+    printf("sum: %x %x %x %x %x \n", cpu->h, cpu->l, cpu->b, cpu->c, sum);
+
     cpu->h = sum >> 8;
     cpu->l = sum;
-    cpu->cf = sum > 0xffff ? 1 : 0;
+    cpu->cf = sum >= 0xffff ? 1 : 0;
     cpu->pc += 1;
     break;
   case 0x19:
@@ -1456,7 +1458,7 @@ void step(cpu* cpu, FILE* op_fh) {
     fprintf(op_fh, "DAD DE\n");
     uint16_t de_3 = cpu->d << 8 | cpu->e;
     uint16_t hl_4 = cpu->h << 8 | cpu->l;
-    uint16_t sum_2 = de_3 + hl_4;
+    uint32_t sum_2 = de_3 + hl_4;
     cpu->h = sum_2 >> 8;
     cpu->l = sum_2;
     cpu->cf = sum_2 > 0xffff ? 1 : 0;
@@ -1466,7 +1468,7 @@ void step(cpu* cpu, FILE* op_fh) {
     printf("> DAD HL\n");
     fprintf(op_fh, "DAD HL\n");
     uint16_t hl_5 = cpu->h << 8 | cpu->l;
-    uint16_t sum_3 = hl_5 + hl_5;
+    uint32_t sum_3 = hl_5 + hl_5;
     cpu->h = sum_3 >> 8;
     cpu->l = sum_3;
     cpu->cf = sum_3 > 0xffff ? 1 : 0;
@@ -1476,7 +1478,7 @@ void step(cpu* cpu, FILE* op_fh) {
     printf("> DAD SP\n");
     fprintf(op_fh, "DAD SP\n");
     uint16_t hl_6 = cpu->h << 8 | cpu->l;
-    uint16_t sum_4 = hl_6 + cpu->sp;
+    uint32_t sum_4 = hl_6 + cpu->sp;
     cpu->h = sum_4 >> 8;
     cpu->l = sum_4;
     cpu->cf = sum_4 > 0xffff ? 1 : 0;
@@ -1485,14 +1487,21 @@ void step(cpu* cpu, FILE* op_fh) {
   case 0x27:
     printf("> DAA \n");
     fprintf(op_fh, "DAA\n");
+    uint8_t daa_tmp_a = cpu->a;
+    uint8_t correction = 0; // NOTE: ignore this variable, only used for acf calculation
     uint8_t daa_higher_4_bits = cpu->a >> 4;
-    uint8_t daa_lower_4_bits = cpu->a & 0xf;
+    uint8_t daa_lower_4_bits = cpu->a & 0x0f;
     if (daa_lower_4_bits > 9 || cpu->acf == 1) {
       cpu->a += 6;
+      correction += 0x06;
     }
+    daa_higher_4_bits = cpu->a >> 4;
+
     if (daa_higher_4_bits > 9 || cpu->cf == 1) {
       daa_higher_4_bits += 6;
-      cpu->a = daa_higher_4_bits << 4 | cpu->a & 0xf;
+      cpu->a = daa_higher_4_bits << 4 | cpu->a & 0x0f;
+      cpu->cf = 1;
+      correction += 0x60;
     }
 
     // set cf,acf and zsp flags
@@ -1500,7 +1509,12 @@ void step(cpu* cpu, FILE* op_fh) {
     // store actual addition result in int16_t variable
     // and check if its > 0xff
     // int16_t true_result =
+    set_zero_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_auxiliary_carry_flag(cpu, daa_tmp_a, correction, 0);
 
+    cpu->pc += 1;
     break;
 
   case 0xa7:
@@ -1601,6 +1615,20 @@ void step(cpu* cpu, FILE* op_fh) {
 
     cpu->pc += 1;
     break;
+  case 0xa6:
+    printf("> ANA M\n");
+    fprintf(op_fh, "ANA M\n");
+    uint8_t tmp_a_35 = cpu->a;
+    cpu->a = cpu->a & cpu->memory[cpu->h << 8 | cpu->l];
+    set_zero_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    cpu->cf = 0;
+    cpu->acf = ((tmp_a_35 | (cpu->memory[cpu->h << 8 | cpu->l])) & 0x08) != 0;
+   
+    cpu->pc += 1;
+    break;
+    
   case 0xe6:
     printf("> ANI data\n");
     fprintf(op_fh, "ANI data\n");
@@ -1790,6 +1818,18 @@ void step(cpu* cpu, FILE* op_fh) {
     set_parity_flag(cpu, cpu->a);
     cpu->pc += 1;
     break;
+  case 0xb6:
+    printf("> ORA M\n");
+    fprintf(op_fh, "ORA M\n");
+    cpu->a = cpu->a | cpu->memory[cpu->h << 8 | cpu->l];
+    cpu->cf = 0;
+    cpu->acf = 0;
+    set_zero_flag(cpu, cpu->a);
+    set_sign_flag(cpu, cpu->a);
+    set_parity_flag(cpu, cpu->a);
+    cpu->pc += 1;
+    break;
+
   case 0xf6:
     printf("> ORI data\n");
     fprintf(op_fh, "ORI data\n");
@@ -1807,19 +1847,22 @@ void step(cpu* cpu, FILE* op_fh) {
     printf("> CMP A\n");
     fprintf(op_fh, "CMP A\n");
     uint16_t cmp_result = cpu->a - cpu->a;
-    // set_carry_flag(cpu, cmp_result);
     cpu->cf = cmp_result >> 8;
     set_zero_flag(cpu, cmp_result);
+    set_sign_flag(cpu, (uint8_t) cmp_result);
+    set_parity_flag(cpu, (uint8_t) cmp_result);
+    cpu->acf = ~(cpu->a ^ cmp_result ^ cpu->a) & 0x10;
     cpu->pc += 1;
     break;
   case 0xb8:
     printf("> CMP B\n");
     fprintf(op_fh, "CMP B\n");
     uint16_t cmp_result_2 = cpu->a - cpu->b;
-    // set_carry_flag(cpu, cmp_result_2);
     cpu->cf = cmp_result_2 >> 8;
-
     set_zero_flag(cpu, cmp_result_2);
+    set_sign_flag(cpu, (uint8_t) cmp_result_2);
+    set_parity_flag(cpu, (uint8_t) cmp_result_2);
+    cpu->acf = ~(cpu->a ^ cmp_result_2 ^ cpu->b) & 0x10;
     cpu->pc += 1;
     break;
   case 0xb9:
@@ -1830,6 +1873,9 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->cf = cmp_result_3 >> 8;
 
     set_zero_flag(cpu, cmp_result_3);
+    set_sign_flag(cpu, (uint8_t) cmp_result_3);
+    set_parity_flag(cpu, (uint8_t) cmp_result_3);
+    cpu->acf = ~(cpu->a ^ cmp_result_3 ^ cpu->c) & 0x10;
     cpu->pc += 1;
     break;
   case 0xba:
@@ -1839,6 +1885,9 @@ void step(cpu* cpu, FILE* op_fh) {
     // set_carry_flag(cpu, cmp_result_4);
     cpu->cf = cmp_result_4 >> 8;
     set_zero_flag(cpu, cmp_result_4);
+    set_sign_flag(cpu, (uint8_t) cmp_result_4);
+    set_parity_flag(cpu, (uint8_t) cmp_result_4);
+    cpu->acf = ~(cpu->a ^ cmp_result_4 ^ cpu->d) & 0x10;
     cpu->pc += 1;
     break;
   case 0xbb:
@@ -1848,6 +1897,9 @@ void step(cpu* cpu, FILE* op_fh) {
     // set_carry_flag(cpu, cmp_result_5);
     cpu->cf = cmp_result_5 >> 8;
     set_zero_flag(cpu, cmp_result_5);
+    set_sign_flag(cpu, (uint8_t) cmp_result_5);
+    set_parity_flag(cpu, (uint8_t) cmp_result_5);
+    cpu->acf = ~(cpu->a ^ cmp_result_5 ^ cpu->e) & 0x10;
     cpu->pc += 1;
     break;
   case 0xbc:
@@ -1857,6 +1909,9 @@ void step(cpu* cpu, FILE* op_fh) {
     // set_carry_flag(cpu, cmp_result_6);
     cpu->cf = cmp_result_6 >> 8;
     set_zero_flag(cpu, cmp_result_6);
+    set_sign_flag(cpu, (uint8_t) cmp_result_6);
+    set_parity_flag(cpu, (uint8_t) cmp_result_6);
+    cpu->acf = ~(cpu->a ^ cmp_result_6 ^ cpu->h) & 0x10;
     cpu->pc += 1;
     break;
   case 0xbd:
@@ -1866,6 +1921,9 @@ void step(cpu* cpu, FILE* op_fh) {
     // set_carry_flag(cpu, cmp_result_7);
     cpu->cf = cmp_result_7 >> 8;
     set_zero_flag(cpu, cmp_result_7);
+    set_sign_flag(cpu, (uint8_t) cmp_result_7);
+    set_parity_flag(cpu, (uint8_t) cmp_result_7);
+    cpu->acf = ~(cpu->a ^ cmp_result_7 ^ cpu->l) & 0x10;
     cpu->pc += 1;
     break;
   case 0xbe:
@@ -1875,6 +1933,10 @@ void step(cpu* cpu, FILE* op_fh) {
     // set_carry_flag(cpu, cmp_result_8);
     cpu->cf = cmp_result_8 >> 8;
     set_zero_flag(cpu, cmp_result_8);
+    set_sign_flag(cpu, (uint8_t) cmp_result_8);
+    set_parity_flag(cpu, (uint8_t) cmp_result_8);
+    cpu->acf =
+        ~(cpu->a ^ cmp_result_8 ^ (cpu->memory[cpu->h << 8 | cpu->l])) & 0x10;
     cpu->pc += 1;
     break;
   case 0xfe:
@@ -1933,7 +1995,7 @@ void step(cpu* cpu, FILE* op_fh) {
   case 0x2f:
     printf("> CMA\n");
     fprintf(op_fh, "CMA\n");
-    cpu->a = -cpu->a;
+    cpu->a = ~cpu->a;
     cpu->pc += 1;
     break;
   case 0x3f:
@@ -2294,10 +2356,11 @@ void step(cpu* cpu, FILE* op_fh) {
 
   case 0xf5:
     printf("> PUSH PSW\n");
-    fprintf(op_fh, "PUSH PSW\n");
+    fprintf(op_fh, "PUSH PSW \n");
+    printf("sp %d ", cpu->sp);
     cpu->memory[cpu->sp - 1] = cpu->a;
     uint8_t psw = 0;
-    psw = cpu->sf << 7 | cpu->zf << 6 | cpu->acf << 4 | cpu->pf << 2 | cpu->cf;
+    psw = cpu->sf << 7 | cpu->zf << 6 | cpu->acf << 4 | cpu->pf << 2 | 0b10 | cpu->cf;
     cpu->memory[cpu->sp - 2] = psw;
     cpu->sp -= 2;
     cpu->pc += 1;
