@@ -145,7 +145,7 @@ Interfacing 8080 with memory and IO
 
 
     RAM and ROM:    
-        8080 treats RAM same ROM
+        8080 treats RAM same as ROM
         8080 issues address to RAM during T1 and T2 states of memory write cycle when it needs to write data in it
         use 4 8316A IC for RAM for size 8K byte size
         use 1 8111 IC for 512 byte RAM

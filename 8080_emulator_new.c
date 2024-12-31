@@ -1488,7 +1488,8 @@ void step(cpu* cpu, FILE* op_fh) {
     printf("> DAA \n");
     fprintf(op_fh, "DAA\n");
     uint8_t daa_tmp_a = cpu->a;
-    uint8_t correction = 0; // NOTE: ignore this variable, only used for acf calculation
+    uint8_t correction =
+        0; // NOTE: ignore this variable, only used for acf calculation
     uint8_t daa_higher_4_bits = cpu->a >> 4;
     uint8_t daa_lower_4_bits = cpu->a & 0x0f;
     if (daa_lower_4_bits > 9 || cpu->acf == 1) {
@@ -1625,10 +1626,10 @@ void step(cpu* cpu, FILE* op_fh) {
     set_sign_flag(cpu, cpu->a);
     cpu->cf = 0;
     cpu->acf = ((tmp_a_35 | (cpu->memory[cpu->h << 8 | cpu->l])) & 0x08) != 0;
-   
+
     cpu->pc += 1;
     break;
-    
+
   case 0xe6:
     printf("> ANI data\n");
     fprintf(op_fh, "ANI data\n");
@@ -2011,9 +2012,15 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc += 1;
     break;
   case 0xc3:
+    printf("JMP addr");
+    printf(op_fh, "JMP addr");
+
     cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     break;
   case 0xc2:
+    printf("Jcondition addr");
+    printf(op_fh, "Jcondition addr");
+
     if (cpu->zf == 0) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2021,6 +2028,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xca:
+    printf("Jcondition addr");
+    printf(op_fh, "Jcondition addr");
     if (cpu->zf == 1) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2028,6 +2037,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xd2:
+    printf("Jcondition addr");
+    printf(op_fh, "Jcondition addr");
     if (cpu->cf == 0) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2035,6 +2046,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xda:
+    printf("Jcondition addr");
+    printf(op_fh, "Jcondition addr");
     if (cpu->cf == 1) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2042,6 +2055,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xe2:
+    printf("Jcondition addr");
+    printf(op_fh, "Jcondition addr");
     if (cpu->pf == 0) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2049,6 +2064,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xea:
+    printf("Jcondition addr");
+    printf(op_fh, "Jcondition addr");
     if (cpu->pf == 1) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2056,6 +2073,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xf2:
+    printf("Jcondition addr");
+    printf(op_fh, "Jcondition addr");
     if (cpu->sf == 0) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2063,6 +2082,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xfa:
+    printf("Jcondition addr");
+    printf(op_fh, "Jcondition addr");
     if (cpu->sf == 1) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2070,7 +2091,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xcd:
-    // TODO: correct implementation from the PDF
+    printf("Jcondition addr");
+    printf(op_fh, "Jcondition addr");
     cpu->pc += 3;
     cpu->memory[cpu->sp - 1] = cpu->pc >> 8;
     cpu->memory[cpu->sp - 2] = cpu->pc & 0xFF;
@@ -2082,6 +2104,8 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc = cpu->memory[cpu->pc - 1] << 8 | cpu->memory[cpu->pc - 2];
     break;
   case 0xc4:
+    printf("Ccondition addr");
+    printf(op_fh, "Ccondition addr");
     if (cpu->zf == 0) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2095,6 +2119,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xcc:
+    printf("Ccondition addr");
+    printf(op_fh, "Ccondition addr");
     if (cpu->zf == 1) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2108,6 +2134,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xd4:
+    printf("Ccondition addr");
+    printf(op_fh, "Ccondition addr");
     if (cpu->cf == 0) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2121,6 +2149,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xdc:
+    printf("Ccondition addr");
+    printf(op_fh, "Ccondition addr");
     if (cpu->cf == 1) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2134,6 +2164,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xe4:
+    printf("Ccondition addr");
+    printf(op_fh, "Ccondition addr");
     // cpu->pc += 1;
     if (cpu->pf == 0) {
       uint16_t next_two_bytes =
@@ -2148,6 +2180,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xec:
+    printf("Ccondition addr");
+    printf(op_fh, "Ccondition addr");
     if (cpu->pf == 1) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2161,6 +2195,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xf4:
+    printf("Ccondition addr");
+    printf(op_fh, "Ccondition addr");
     if (cpu->sf == 0) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2175,6 +2211,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xfc:
+    printf("Ccondition addr");
+    printf(op_fh, "Ccondition addr");
     if (cpu->sf == 1) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2195,6 +2233,9 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->sp += 2;
     break;
   case 0xc0:
+    printf("Rcondition addr");
+    printf(op_fh, "Rcondition addr");
+
     if (cpu->zf == 0) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2203,6 +2244,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xc8:
+    printf("Rcondition addr");
+    printf(op_fh, "Rcondition addr");
     if (cpu->zf == 1) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2211,6 +2254,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xd0:
+    printf("Rcondition addr");
+    printf(op_fh, "Rcondition addr");
     if (cpu->cf == 0) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2219,6 +2264,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xd8:
+    printf("Rcondition addr");
+    printf(op_fh, "Rcondition addr");
     if (cpu->cf == 1) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2227,6 +2274,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xe0:
+    printf("Rcondition addr");
+    printf(op_fh, "Rcondition addr");
     if (cpu->pf == 0) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2235,6 +2284,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xe8:
+    printf("Rcondition addr");
+    printf(op_fh, "Rcondition addr");
     if (cpu->pf == 1) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2243,6 +2294,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xf0:
+    printf("Rcondition addr");
+    printf(op_fh, "Rcondition addr");
     if (cpu->sf == 0) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2251,6 +2304,8 @@ void step(cpu* cpu, FILE* op_fh) {
     }
     break;
   case 0xf8:
+    printf("Rcondition addr");
+    printf(op_fh, "Rcondition addr");
     if (cpu->sf == 1) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2360,7 +2415,8 @@ void step(cpu* cpu, FILE* op_fh) {
     printf("sp %d ", cpu->sp);
     cpu->memory[cpu->sp - 1] = cpu->a;
     uint8_t psw = 0;
-    psw = cpu->sf << 7 | cpu->zf << 6 | cpu->acf << 4 | cpu->pf << 2 | 0b10 | cpu->cf;
+    psw = cpu->sf << 7 | cpu->zf << 6 | cpu->acf << 4 | cpu->pf << 2 | 0b10 |
+          cpu->cf;
     cpu->memory[cpu->sp - 2] = psw;
     cpu->sp -= 2;
     cpu->pc += 1;

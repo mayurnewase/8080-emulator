@@ -1,0 +1,21 @@
+4 roms are available which should be loaded in memory at following addresses
+    invaders.h 0000-07ff
+    invaders.g 0800-0fff
+    invaders.f 1000-17ff
+    invaders.e 1800-1fff
+
+Video output:
+    raster resolution is 256*224 pixels at 60Hz.
+    monitor is rotated 90 degrees counter clockwise.
+    screen pixels are either on/off, no colors.
+        so each pixel is 1 bit, so total size of 1 frame = 256*224 bits = 57344 bits or 7168 bytes
+
+memory layout:
+    0000-1fff = all 4 roms
+    2000-23ff = ram
+    2400-3fff = video ram
+    4000 = ram mirror
+
+// TODOs:
+    convert all rams into assembly code
+    then understand the code

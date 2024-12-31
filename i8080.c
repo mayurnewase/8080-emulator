@@ -83,7 +83,7 @@ static inline void i8080_wb(i8080* const c, uint16_t addr, uint8_t val) {
 // shifts byte 2 to left by 8 bits and bit ORs with byte 1
 // to give 16 bit number with 2nd byte first 8 bits and 1st byte in last 8 bits
 static inline uint16_t i8080_rw(i8080* const c, uint16_t addr) {
-  // printf(
+  // // printf(
   //     "rw without shift %d %d %x %d \n ", c->read_byte(c->userdata, addr + 1),
   //     c->read_byte(c->userdata, addr + 1) << 8,
   //     c->read_byte(c->userdata, addr + 1) << 8 | c->read_byte(c->userdata, addr)
@@ -141,7 +141,7 @@ static inline uint16_t i8080_get_de(i8080* const c) {
 }
 
 static inline uint16_t i8080_get_hl(i8080* const c) {
-  printf("get hl %x %x \n", c->h<<8, c->l);
+  // printf("get hl %x %x \n", c->h<<8, c->l);
   return (c->h << 8) | c->l;
 }
 
@@ -149,7 +149,7 @@ static inline uint16_t i8080_get_hl(i8080* const c) {
 
 // pushes a value into the stack and updates the stack pointer
 static inline void i8080_push_stack(i8080* const c, uint16_t val) {
-  printf("\n pushing stack %x %x \n", val, c->sp);
+  // printf("\n pushing stack %x %x \n", val, c->sp);
 
   c->sp -= 2; // sp -> 7bb, pc -> 441
   i8080_ww(c, c->sp, val);
@@ -181,7 +181,9 @@ static inline bool carry(int bit_no, uint8_t a, uint8_t b, bool cy) {
   
   uint16_t result = a + b + cy;
   int16_t carry = result ^ a ^ b;
-  if (bit_no == 8) printf("\n chip carry %d %d %d %d", a, b, cy, carry & (1 << bit_no));
+  
+  // if (bit_no == 8) 
+  // // printf("\n chip carry %d %d %d %d", a, b, cy, carry & (1 << bit_no));
 
   return carry & (1 << bit_no);
    // 100000000
@@ -208,7 +210,7 @@ static inline void i8080_sub(
 // adds a word to HL
 static inline void i8080_dad(i8080* const c, uint16_t val) {
   c->cf = ((i8080_get_hl(c) + val) >> 16) & 1;
-  printf("dad sum %x\n ", i8080_get_hl(c) + val);
+  // printf("dad sum %x\n ", i8080_get_hl(c) + val);
   i8080_set_hl(c, i8080_get_hl(c) + val);
 }
 
@@ -281,17 +283,17 @@ static inline void i8080_cond_jmp(i8080* const c, bool condition) {
 // pushes the current pc to the stack, then jumps to an address
 static inline void i8080_call(i8080* const c, uint16_t addr) {
   // addr - > 14b;, pc -> 443
-  printf("calling %x %x", addr, c->pc);
+  // printf("calling %x %x", addr, c->pc);
   fflush(stdout);
   i8080_push_stack(c, c->pc);
   i8080_jmp(c, addr);
-  printf("chip memo at 7bb %x ", c->read_byte(c, 0x7bb));
+  // printf("chip memo at 7bb %x ", c->read_byte(c, 0x7bb));
 }
 
 // calls to next word in memory if a condition is met
 static inline void i8080_cond_call(i8080* const c, bool condition) {
   uint16_t addr = i8080_next_word(c);
-  printf("chip call %x ", addr);
+  // printf("chip call %x ", addr);
   if (condition) {
     i8080_call(c, addr);
     c->cyc += 6;
@@ -300,8 +302,8 @@ static inline void i8080_cond_call(i8080* const c, bool condition) {
 
 // returns from subroutine
 static inline void i8080_ret(i8080* const c) {
-  printf("chip memory %x %x \n", c->sp, c->read_byte(c->userdata, c->sp));
-  printf("chip memory %x %x \n", c->sp+1 ,c->read_byte(c->userdata, c->sp+1));
+  // printf("chip memory %x %x \n", c->sp, c->read_byte(c->userdata, c->sp));
+  // printf("chip memory %x %x \n", c->sp+1 ,c->read_byte(c->userdata, c->sp+1));
   c->pc = i8080_pop_stack(c);
 }
 
@@ -405,7 +407,7 @@ static inline void i8080_xthl(i8080* const c) {
 // executes one opcode
 static inline void i8080_execute(i8080* const c, uint8_t opcode) {
   c->cyc += OPCODES_CYCLES[opcode];
-  printf("\n opcode cycles %d \n", OPCODES_CYCLES[opcode]);
+  // printf("\n opcode cycles %d \n", OPCODES_CYCLES[opcode]);
 
   // when DI is executed, interrupts won't be serviced
   // until the end of next instruction:
@@ -680,7 +682,7 @@ static inline void i8080_execute(i8080* const c, uint8_t opcode) {
   case 0xD4: i8080_cond_call(c, c->cf == 0); break; // CNC
   case 0xDC: i8080_cond_call(c, c->cf == 1); break; // CC
   case 0xE4: {
-    printf("\nchip e4 %x \n", c->pc);
+    // printf("\nchip e4 %x \n", c->pc);
     i8080_cond_call(c, c->pf == 0); break;} // CPO
   case 0xEC: i8080_cond_call(c, c->pf == 1); break; // CPE
   case 0xF4:
@@ -773,13 +775,13 @@ void i8080_init(i8080* const c) {
 }
 
 void print_registers(i8080* const c) {
-  printf("\n------------------------------\n");
-  printf("\npc %d %x", c->pc, c->pc);
-  printf("\nsp %x, sp-2 %x, sp-1 %x", c->sp, c->sp - 2, c->sp - 1);
-  printf("\n a %d %x b %d %x", c->a, c->a, c->b, c->b);
-  printf("\n h %d %x l %d %x", c->h, c->h, c->l, c->l);
-  printf("\n d %d %x e %d %x", c->d, c->d, c->e, c->e);
-  printf("\n------------------------------\n");
+  // printf("\n------------------------------\n");
+  // printf("\npc %d %x", c->pc, c->pc);
+  // printf("\nsp %x, sp-2 %x, sp-1 %x", c->sp, c->sp - 2, c->sp - 1);
+  // printf("\n a %d %x b %d %x", c->a, c->a, c->b, c->b);
+  // printf("\n h %d %x l %d %x", c->h, c->h, c->l, c->l);
+  // printf("\n d %d %x e %d %x", c->d, c->d, c->e, c->e);
+  // printf("\n------------------------------\n");
 }
 
 // executes one instruction
@@ -793,17 +795,17 @@ void i8080_step(i8080* const c) {
 
     i8080_execute(c, c->interrupt_vector);
   } else if (!c->halted) {
-    // printf("\nbefore execute");
+    // // printf("\nbefore execute");
     // print_registers(c);
-    // printf("\npc -> %x", c->pc);
+    // // printf("\npc -> %x", c->pc);
 
     uint8_t next_byte = i8080_next_byte(c);
-    printf("\n chip running instruction %x\n", next_byte);
+    // printf("\n chip running instruction %x\n", next_byte);
     i8080_execute(c, next_byte); // current
 
-    // printf("\nafter executsion\n");
+    // // printf("\nafter executsion\n");
     // print_registers(c);
-    // printf("\n----------------\n");
+    // // printf("\n----------------\n");
   }
 }
 
@@ -824,35 +826,35 @@ void i8080_debug_output(i8080* const c, bool print_disassembly) {
   // f |= 1 << 1; // bit 1 is always 1
   // f |= c->cf << 0;
 
-  // printf("PC: %04X, AF: %04X, BC: %04X, DE: %04X, HL: %04X, SP: %04X, CYC: %lu",
+  // // printf("PC: %04X, AF: %04X, BC: %04X, DE: %04X, HL: %04X, SP: %04X, CYC: %lu",
   //     c->pc, c->a << 8 | f, i8080_get_bc(c), i8080_get_de(c), i8080_get_hl(c),
   //     c->sp, c->cyc);
 
-  // printf("\t(%02X %02X %02X %02X)", i8080_rb(c, c->pc), i8080_rb(c, c->pc + 1),
+  // // printf("\t(%02X %02X %02X %02X)", i8080_rb(c, c->pc), i8080_rb(c, c->pc + 1),
   //     i8080_rb(c, c->pc + 2), i8080_rb(c, c->pc + 3));
 
   // if (print_disassembly) {
-  //   printf(" - %s", DISASSEMBLE_TABLE[i8080_rb(c, c->pc)]);
+  //   // printf(" - %s", DISASSEMBLE_TABLE[i8080_rb(c, c->pc)]);
   // }
 
-  // printf("\n");
+  // // printf("\n");
 
-  printf("\n------------chip---------------\n");
-  printf("A : %x\n", c->a);
-  printf("B : %x\n", c->b);
-  printf("C : %x\n", c->c);
-  printf("D : %x\n", c->d);
-  printf("E : %x\n", c->e);
-  printf("H : %x\n", c->h);
-  printf("L : %x\n", c->l);
-  printf("PC: %x\n", c->pc);
-  printf("ZF: %x\n", c->zf);
-  printf("CF: %x\n", c->cf);
-  printf("SF: %x\n", c->sf);
-  printf("PF: %x\n", c->pf);
-  printf("ACF: %x\n", c->hf);
-  printf("SP: %x\n", c->sp);
-  printf("---------------------------\n");
+  // printf("\n------------chip---------------\n");
+  // printf("A : %x\n", c->a);
+  // printf("B : %x\n", c->b);
+  // printf("C : %x\n", c->c);
+  // printf("D : %x\n", c->d);
+  // printf("E : %x\n", c->e);
+  // printf("H : %x\n", c->h);
+  // printf("L : %x\n", c->l);
+  // printf("PC: %x\n", c->pc);
+  // printf("ZF: %x\n", c->zf);
+  // printf("CF: %x\n", c->cf);
+  // printf("SF: %x\n", c->sf);
+  // printf("PF: %x\n", c->pf);
+  // printf("ACF: %x\n", c->hf);
+  // printf("SP: %x\n", c->sp);
+  // printf("---------------------------\n");
 }
 
 #undef SET_ZSP
