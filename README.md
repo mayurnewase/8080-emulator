@@ -83,3 +83,12 @@ Tests complete
 - [CPU instructions](http://nemesis.lonestar.org/computers/tandy/software/apps/m4/qd/opcodes.html) and [this table](http://www.pastraiser.com/cpu/i8080/i8080_opcodes.html)
 - [MAME i8085](https://github.com/mamedev/mame/blob/6c0fdfc5257ca20555fbc527203710d5af5401d1/src/devices/cpu/i8085/i8085.cpp)
 - [thibaultimbert's Intel8080](https://github.com/thibaultimbert/Intel8080/blob/master/8080.js) and [begoon's i8080-js](https://github.com/begoon/i8080-js)
+
+chrome tabs open
+    https://computerarcheology.com/Arcade/SpaceInvaders/Hardware.html
+    https://computerarcheology.com/Arcade/SpaceInvaders/Hardware.html
+    https://www.emulator101.com/full-8080-emulation.html
+    https://www.emulator101.com/
+    https://www.asm80.com/onepage/asm8080.html
+    https://wiki.libsdl.org/SDL2/SDL_RenderPresent
+    
