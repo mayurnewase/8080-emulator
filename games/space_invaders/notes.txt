@@ -1,11 +1,11 @@
 4 roms are available which should be loaded in memory at following addresses
-    invaders.h 0000-07ff
+    invaders.h 0000-07ff = 2048 bytes = 2KB
     invaders.g 0800-0fff
     invaders.f 1000-17ff
     invaders.e 1800-1fff
 
 Video output:
-    raster resolution is 256*224 pixels at 60Hz.
+    raster resolution is 256*224 (h*w) pixels at 60Hz.
     monitor is rotated 90 degrees counter clockwise.
     screen pixels are either on/off, no colors.
         so each pixel is 1 bit, so total size of 1 frame = 256*224 bits = 57344 bits or 7168 bytes
@@ -16,6 +16,71 @@ memory layout:
     2400-3fff = video ram
     4000 = ram mirror
 
+port info
+    both are 8 bits
+
+// PORT 1:
+// Bit Description
+// 0   Coin slot (1 = coin inserted)
+// 1   Two players button
+// 2   One player button (start)
+// 3   n/a
+// 4   Player one - Fire button
+// 5   Player one - Left button
+// 6   Player one - Right button
+// 7   n/a
+
+
+// PORT 2:
+// Bit Description
+// 0-1 DIP switch: number of ships (00 = 3 ships, 10 = 5 ships,
+//                                  01 = 4 ships, 11 = 6 ships)
+// 2   TILT
+// 3   n/a
+// 4   Player two - Fire button
+// 5   Player two - Left button
+// 6   Player two - Right button
+// 7   ???
+
 // TODOs:
     convert all rams into assembly code
     then understand the code
+
+-------------------------------
+**Types of Renderers**
+
+There are several types of renderers, each with its own strengths and weaknesses. Here are some of the most common types of renderers:
+
+1. **Raster Renderer**: A raster renderer is a type of renderer that uses a raster graphics pipeline to render 2D and 3D graphics. Raster renderers are commonly used in video games, computer-aided design (CAD) software, and other applications that require high-performance rendering.
+2. **Ray Tracing Renderer**: A ray tracing renderer is a type of renderer that uses a ray tracing algorithm to render 3D scenes. Ray tracing renderers are commonly used in applications that require high-quality rendering, such as film and video production, architectural visualization, and product design.
+3. **Path Tracing Renderer**: A path tracing renderer is a type of renderer that uses a path tracing algorithm to render 3D scenes. Path tracing renderers are commonly used in applications that require high-quality rendering, such as film and video production, architectural visualization, and product design.
+4. **Scanline Renderer**: A scanline renderer is a type of renderer that uses a scanline algorithm to render 2D and 3D graphics. Scanline renderers are commonly used in applications that require high-performance rendering, such as video games and CAD software.
+5. **Tile-Based Renderer**: A tile-based renderer is a type of renderer that uses a tile-based algorithm to render 2D and 3D graphics. Tile-based renderers are commonly used in applications that require high-performance rendering, such as video games and CAD software.
+6. **Deferred Renderer**: A deferred renderer is a type of renderer that uses a deferred shading algorithm to render 3D scenes. Deferred renderers are commonly used in applications that require high-quality rendering, such as film and video production, architectural visualization, and product design.
+7. **Forward Renderer**: A forward renderer is a type of renderer that uses a forward shading algorithm to render 3D scenes. Forward renderers are commonly used in applications that require high-performance rendering, such as video games and CAD software.
+8. **Hybrid Renderer**: A hybrid renderer is a type of renderer that uses a combination of different rendering algorithms to render 3D scenes. Hybrid renderers are commonly used in applications that require high-quality rendering and high-performance rendering, such as film and video production, architectural visualization, and product design.
+
+**Renderer APIs**
+
+There are several renderer APIs available, each with its own strengths and weaknesses. Here are some of the most common renderer APIs:
+
+1. **OpenGL**: OpenGL is a cross-platform, open-standard API for rendering 2D and 3D graphics.
+2. **DirectX**: DirectX is a proprietary API for rendering 2D and 3D graphics on Windows platforms.
+3. **Vulkan**: Vulkan is a cross-platform, open-standard API for rendering 2D and 3D graphics.
+4. **Metal**: Metal is a proprietary API for rendering 2D and 3D graphics on Apple platforms.
+5. **RenderScript**: RenderScript is a proprietary API for rendering 2D and 3D graphics on Android platforms.
+
+**Renderer Libraries**
+1. SDL: uses above backends to render graphics
+
+**Renderer Engines**
+
+There are several renderer engines available, each with its own strengths and weaknesses. Here are some of the most common renderer engines:
+
+1. **Unity**: Unity is a popular game engine that includes a built-in renderer.
+2. **Unreal Engine**: Unreal Engine is a popular game engine that includes a built-in renderer.
+3. **CryEngine**: CryEngine is a popular game engine that includes a built-in renderer.
+4. **Source Engine**: Source Engine is a proprietary game engine developed by Valve Corporation.
+5. **Godot Engine**: Godot Engine is an open-source game engine that includes a built-in renderer.
+
+I hope this helps Let me know if you have any other questions.

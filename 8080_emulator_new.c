@@ -4,17 +4,14 @@
 
 void load_rom(cpu* cpu, char* rom_name, uint16_t memory_offset) {
 
-  // dynamic memory
-  cpu->memory = malloc(MEMORY_SIZE);
-  memset(cpu->memory, 0, MEMORY_SIZE);
-
   // for(int i=0; i<MEMORY_SIZE; i++){
   //   cpu->memory[i] = (uint8_t) 0;
   // }
-  printf("\n memory content %x %x \n", cpu->memory[0x7b7], cpu->memory[0x7b8]);
+  // printf("\n memory content %x %x \n", cpu->memory[0x7b7],
+  // cpu->memory[0x7b8]);
 
   // load the ROM into memory
-  // printf("loading rom %s\n", rom_name);
+  printf("loading rom %s\n", rom_name);
   // fflush(stdout);
 
   FILE* f = fopen(rom_name, "rb");
@@ -31,28 +28,18 @@ void load_rom(cpu* cpu, char* rom_name, uint16_t memory_offset) {
 
   // get the file size to load into memory correctly, or ftell gives 0 lol.
   fseek(f, 0, SEEK_END);
-  printf("file seeked to end");
-  fflush(stdout);
 
   size_t file_size = ftell(f);
   rewind(f);
 
-  // printf("file size %d ", file_size);
-  printf("file size read");
-  fflush(stdout);
-
   size_t bytes_read =
       fread(&cpu->memory[memory_offset], sizeof(uint8_t), file_size, f);
-  printf("read byte in memory %x %x %x %x %x %x \n", cpu->memory[0],
-      cpu->memory[1], cpu->memory[2], cpu->memory[0x100], cpu->memory[0x101],
-      cpu->memory[0x102]);
+
+  printf("read byte in memory %x %x \n", cpu->memory[0x16c9 - memory_offset],
+      cpu->memory[0x16c9 - memory_offset + 1]);
 
   // fclose(f); // TODO: gives error, fix it
   printf("rom loaded %d bytes\n", bytes_read);
-  fflush(stdout);
-
-  // cpu->memory[0xa14] = 20; // TODO: remove this
-  // printf("memory set %x\n", cpu->memory[0xa14]);
 }
 
 void init_registers(cpu* cpu) {
@@ -75,16 +62,28 @@ void init_flags(cpu* cpu) {
   cpu->acf = 0;
 }
 
+void reset_state_count(cpu* cpu) {
+  cpu->state_count = 0;
+}
+
+void init_memory(cpu* cpu) {
+  cpu->memory = malloc(MEMORY_SIZE);
+  memset(cpu->memory, 0, MEMORY_SIZE);
+}
+
 void cpu_init(cpu* cpu, char* rom_name, uint16_t memory_offset_to_load_rom) {
   // load the ROM into memory
   // for (int i = 0; i < MEMORY_SIZE; i++) {
   //   cpu->memory[i] = 0;
   // }
 
+  init_memory(cpu);
+
   load_rom(cpu, rom_name, memory_offset_to_load_rom);
 
   init_registers(cpu);
   init_flags(cpu);
+  cpu->state_count = 0;
 }
 
 void set_zero_flag(cpu* cpu, uint8_t result) {
@@ -120,22 +119,41 @@ void set_sign_flag(cpu* cpu, uint8_t result) {
   cpu->sf = result >> 7;
 }
 
-void port_out(cpu* cpu, uint8_t port_no, uint8_t value) {
-  // this function is not doing what specified in the 8080 doc.
-  // this uses values in d and e to find address in memory to print till $
+// cycle count of all instructions
+// these are states count of instructions and not cycle count from the pdf
 
-  // printf("\ncpu port out input %x %x \n", port_no, value);
-  uint8_t operation = cpu->c;
-  uint16_t addr = (cpu->d << 8) | cpu->e;
-  do {
-    printf("%c", cpu->memory[addr++]);
-  } while (cpu->memory[addr] != '$');
-}
+static const uint8_t OPCODES_STATES[256] = {
+    //  0  1   2   3   4   5   6   7   8  9   A   B   C   D   E  F
+    4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4, // 0
+    4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4, // 1
+    4, 10, 16, 5, 5, 5, 7, 4, 4, 10, 16, 5, 5, 5, 7, 4, // 2
+    4, 10, 13, 5, 10, 10, 10, 4, 4, 10, 13, 5, 5, 5, 7, 4, // 3
+    5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5, // 4
+    5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5, // 5
+    5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5, // 6
+    7, 7, 7, 7, 7, 7, 7, 7, 5, 5, 5, 5, 5, 5, 7, 5, // 7
+    4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, // 8
+    4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, // 9
+    4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, // A
+    4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, // B
+    5, 10, 10, 10, 11, 11, 7, 11, 5, 10, 10, 10, 11, 17, 7, 11, // C
+    5, 10, 10, 10, 11, 11, 7, 11, 5, 10, 10, 10, 11, 17, 7, 11, // D
+    5, 10, 10, 18, 11, 11, 7, 11, 5, 5, 10, 4, 11, 17, 7, 11, // E
+    5, 10, 10, 4, 11, 11, 7, 11, 5, 5, 10, 4, 11, 17, 7, 11 // F
+};
 
 void step(cpu* cpu, FILE* op_fh) {
-  // fetch the instruction using program counter
-  int instruction = cpu->memory[cpu->pc];
-  printf("\ncpu runnning instruction %x \n", instruction);
+  uint8_t instruction;
+  if (cpu->interrupt_enable && cpu->interrupt_delay == 0) {
+    cpu->interrupt_enable = 0;
+    instruction = cpu->interrupt_opcode;
+  } else {
+    // fetch the instruction using program counter
+    instruction = cpu->memory[cpu->pc];
+  }
+  // printf("\ncpu running instruction %x %d\n", instruction, cpu->state_count);
+
+  cpu->state_count += OPCODES_STATES[instruction];
 
   switch (instruction) {
 
@@ -2013,14 +2031,12 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xc3:
     printf("JMP addr");
-    printf(op_fh, "JMP addr");
-
+    fprintf(op_fh, "JMP addr");
     cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     break;
   case 0xc2:
-    printf("Jcondition addr");
-    printf(op_fh, "Jcondition addr");
-
+    printf("Jcondition addr\n");
+    fprintf(op_fh, "Jcondition addr\n");
     if (cpu->zf == 0) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2029,7 +2045,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xca:
     printf("Jcondition addr");
-    printf(op_fh, "Jcondition addr");
+    fprintf(op_fh, "Jcondition addr");
     if (cpu->zf == 1) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2038,7 +2054,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xd2:
     printf("Jcondition addr");
-    printf(op_fh, "Jcondition addr");
+    fprintf(op_fh, "Jcondition addr");
     if (cpu->cf == 0) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2047,7 +2063,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xda:
     printf("Jcondition addr");
-    printf(op_fh, "Jcondition addr");
+    fprintf(op_fh, "Jcondition addr");
     if (cpu->cf == 1) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2056,7 +2072,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xe2:
     printf("Jcondition addr");
-    printf(op_fh, "Jcondition addr");
+    fprintf(op_fh, "Jcondition addr");
     if (cpu->pf == 0) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2065,7 +2081,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xea:
     printf("Jcondition addr");
-    printf(op_fh, "Jcondition addr");
+    fprintf(op_fh, "Jcondition addr");
     if (cpu->pf == 1) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2074,7 +2090,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xf2:
     printf("Jcondition addr");
-    printf(op_fh, "Jcondition addr");
+    fprintf(op_fh, "Jcondition addr");
     if (cpu->sf == 0) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2083,7 +2099,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xfa:
     printf("Jcondition addr");
-    printf(op_fh, "Jcondition addr");
+    fprintf(op_fh, "Jcondition addr");
     if (cpu->sf == 1) {
       cpu->pc = cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
     } else {
@@ -2092,7 +2108,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xcd:
     printf("Jcondition addr");
-    printf(op_fh, "Jcondition addr");
+    fprintf(op_fh, "Jcondition addr");
     cpu->pc += 3;
     cpu->memory[cpu->sp - 1] = cpu->pc >> 8;
     cpu->memory[cpu->sp - 2] = cpu->pc & 0xFF;
@@ -2105,7 +2121,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xc4:
     printf("Ccondition addr");
-    printf(op_fh, "Ccondition addr");
+    fprintf(op_fh, "Ccondition addr");
     if (cpu->zf == 0) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2120,7 +2136,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xcc:
     printf("Ccondition addr");
-    printf(op_fh, "Ccondition addr");
+    fprintf(op_fh, "Ccondition addr");
     if (cpu->zf == 1) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2135,7 +2151,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xd4:
     printf("Ccondition addr");
-    printf(op_fh, "Ccondition addr");
+    fprintf(op_fh, "Ccondition addr");
     if (cpu->cf == 0) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2150,7 +2166,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xdc:
     printf("Ccondition addr");
-    printf(op_fh, "Ccondition addr");
+    fprintf(op_fh, "Ccondition addr");
     if (cpu->cf == 1) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2165,7 +2181,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xe4:
     printf("Ccondition addr");
-    printf(op_fh, "Ccondition addr");
+    fprintf(op_fh, "Ccondition addr");
     // cpu->pc += 1;
     if (cpu->pf == 0) {
       uint16_t next_two_bytes =
@@ -2181,7 +2197,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xec:
     printf("Ccondition addr");
-    printf(op_fh, "Ccondition addr");
+    fprintf(op_fh, "Ccondition addr");
     if (cpu->pf == 1) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2196,7 +2212,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xf4:
     printf("Ccondition addr");
-    printf(op_fh, "Ccondition addr");
+    fprintf(op_fh, "Ccondition addr");
     if (cpu->sf == 0) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2212,7 +2228,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xfc:
     printf("Ccondition addr");
-    printf(op_fh, "Ccondition addr");
+    fprintf(op_fh, "Ccondition addr");
     if (cpu->sf == 1) {
       uint16_t next_two_bytes =
           cpu->memory[cpu->pc + 2] << 8 | cpu->memory[cpu->pc + 1];
@@ -2234,7 +2250,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xc0:
     printf("Rcondition addr");
-    printf(op_fh, "Rcondition addr");
+    fprintf(op_fh, "Rcondition addr");
 
     if (cpu->zf == 0) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
@@ -2245,7 +2261,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xc8:
     printf("Rcondition addr");
-    printf(op_fh, "Rcondition addr");
+    fprintf(op_fh, "Rcondition addr");
     if (cpu->zf == 1) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2255,7 +2271,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xd0:
     printf("Rcondition addr");
-    printf(op_fh, "Rcondition addr");
+    fprintf(op_fh, "Rcondition addr");
     if (cpu->cf == 0) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2265,7 +2281,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xd8:
     printf("Rcondition addr");
-    printf(op_fh, "Rcondition addr");
+    fprintf(op_fh, "Rcondition addr");
     if (cpu->cf == 1) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2275,7 +2291,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xe0:
     printf("Rcondition addr");
-    printf(op_fh, "Rcondition addr");
+    fprintf(op_fh, "Rcondition addr");
     if (cpu->pf == 0) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2285,7 +2301,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xe8:
     printf("Rcondition addr");
-    printf(op_fh, "Rcondition addr");
+    fprintf(op_fh, "Rcondition addr");
     if (cpu->pf == 1) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2295,7 +2311,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xf0:
     printf("Rcondition addr");
-    printf(op_fh, "Rcondition addr");
+    fprintf(op_fh, "Rcondition addr");
     if (cpu->sf == 0) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2305,7 +2321,7 @@ void step(cpu* cpu, FILE* op_fh) {
     break;
   case 0xf8:
     printf("Rcondition addr");
-    printf(op_fh, "Rcondition addr");
+    fprintf(op_fh, "Rcondition addr");
     if (cpu->sf == 1) {
       cpu->pc = cpu->memory[cpu->sp] | cpu->memory[cpu->sp + 1] << 8;
       cpu->sp += 2;
@@ -2479,9 +2495,16 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc += 1;
     break;
 
-  case 0xdb: // NOTE: not implemented
+  case 0xdb:
     printf("> IN data\n");
     fprintf(op_fh, "IN data\n");
+    cpu->a = cpu->port_in(cpu->memory[cpu->pc + 1]);
+
+    if (cpu->a != 0) {
+      printf("\nport data %d\n", cpu->a);
+      // sleep(1);
+    }
+    cpu->pc += 2;
     break;
 
   case 0xd3:
@@ -2489,7 +2512,7 @@ void step(cpu* cpu, FILE* op_fh) {
     fprintf(op_fh, "OUT data\n");
     uint8_t port = cpu->memory[cpu->pc + 1];
     uint8_t data = cpu->a;
-    port_out(cpu, port, data);
+    cpu->port_out(port, data);
     cpu->pc += 2;
     break;
 
@@ -2522,8 +2545,26 @@ void step(cpu* cpu, FILE* op_fh) {
     cpu->pc += 1;
     break;
 
-  default: printf("instruction not found: %x\n", instruction); break;
+  case 0x08:
+  case 0x10:
+  case 0x18:
+  case 0x20:
+  case 0x28:
+  case 0x30:
+  case 0x38:
+    printf("> undocumented instruction\n");
+    fprintf(op_fh, "undocuemnted instruction\n");
+    cpu->pc += 1;
+    break;
+
+  default: printf("instruction not found: %x\n", instruction); exit(1);
   }
+}
+
+void interrupt_cpu(cpu* cpu, uint8_t opcode) {
+  cpu->interrupt_enable = 1;
+  cpu->interrupt_delay = 0;
+  cpu->interrupt_opcode = opcode;
 }
 
 void debug_cpu(cpu* cpu) {
