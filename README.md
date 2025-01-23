@@ -91,4 +91,12 @@ chrome tabs open
     https://www.emulator101.com/
     https://www.asm80.com/onepage/asm8080.html
     https://wiki.libsdl.org/SDL2/SDL_RenderPresent
+
+Terminals
+    path: ~/projects/Modern-CPP-Programming/invaders/deps/8080/games/space_invaders
+    command: clang main.c ../../8080_emulator_new.c -lSDL2 -o main && ./main
+    path:/projects/Modern-CPP-Programming/invaders/deps/8080/games/sdl_basics
+    command: clang main.c -lSDL2 && ./a.out
+    path: projects/Modern-CPP-Programming/invaders/build
+    command: cmake .. -DROMS_DIR=/home/mayur/projects/Modern-CPP-Programming/emulator_101/SpaceInvaders8080/roms/spaceinvaders && make && ./invaders
     
