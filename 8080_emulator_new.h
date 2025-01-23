@@ -18,40 +18,52 @@
 // define processor object
 
 typedef struct {
-    // 8 bit registers
-    uint8_t a, b, c, d, e, h, l;
+  // 8 bit registers
+  uint8_t a, b, c, d, e, h, l;
 
-    // 5 bit flag registes
-    bool zf; // zero flag
-    bool cf; // carry flag
-    bool sf; // sign flag
-    bool pf; // parity flag
-    bool acf; // auxiliary carry flag
+  // 5 bit flag registes
+  bool zf; // zero flag
+  bool cf; // carry flag
+  bool sf; // sign flag
+  bool pf; // parity flag
+  bool acf; // auxiliary carry flag
 
-    // program counter
-    uint16_t pc;
+  // program counter
+  uint16_t pc;
 
-    // stack pointer
-    uint16_t sp;
-    
-    // memory
-    // uint8_t memory[MEMORY_SIZE];
+  // stack pointer
+  uint16_t sp;
+
+  // memory
+  // uint8_t memory[MEMORY_SIZE];
   // dynamic memory
-    uint8_t* memory;
+  uint8_t* memory;
 
-    //interrupt enable or disable
-    bool interrupt_enable;
-    uint8_t interrupt_delay; // when to enable/disable the ineterrupt after executing EI / DI
-    
-    // processor halted
-    bool halted;
+  // interrupt enable or disable
+  bool interrupt_enable;
+  uint8_t interrupt_delay; // when to enable/disable the ineterrupt after
+                           // executing EI / DI
+  uint8_t interrupt_opcode;
 
-    // TODO: add data and address bus bits if interfacing with other devices is also emulated
+  // processor halted
+  bool halted;
 
+  unsigned long state_count;
+
+  uint8_t (*port_in)(uint8_t);
+  void (*port_out)(uint8_t, uint8_t);
+
+  // TODO: add data and address bus bits if interfacing with other devices is
+  // also emulated
 
 } cpu;
 
 void cpu_init(cpu* cpu, char* rom_name, uint16_t memory_offset_to_load_rom);
 void debug_cpu(cpu* cpu);
 
-
+// for direct access
+void load_rom(cpu* cpu, char* rom_name, uint16_t memory_offset);
+void init_registers(cpu* cpu);
+void init_flags(cpu* cpu);
+void init_memory(cpu* cpu);
+void interrupt_cpu(cpu* cpu, uint8_t opcode);

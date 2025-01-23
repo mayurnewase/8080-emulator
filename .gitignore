@@ -3,4 +3,7 @@
 i8080_tests
 cpm
 cpu_tests/sunhillow
-TODO.md
+compare_tests.c
+i8080.c
+i8080.h
+*.out

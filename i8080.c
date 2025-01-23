@@ -97,8 +97,8 @@ static inline uint16_t i8080_rw(i8080* const c, uint16_t addr) {
 static inline void i8080_ww(i8080* const c, uint16_t addr, uint16_t val) {
   c->write_byte(c->userdata, addr, val & 0xFF);
   c->write_byte(c->userdata, addr + 1, val >> 8);
-  printf("writing word in memory %x %x = %x, %x = %x \n", val, addr, val & 0xFF, addr + 1,
-      val >> 8);
+  // printf("writing word in memory %x %x = %x, %x = %x \n", val, addr, val & 0xFF, addr + 1,
+  //     val >> 8);
   // printf("chip memory content %x ", c->read_byte(c->userdata, 0x7bb));
 }
 
@@ -414,6 +414,7 @@ static inline void i8080_execute(i8080* const c, uint8_t opcode) {
   if (c->interrupt_delay > 0) {
     c->interrupt_delay -= 1;
   }
+  // printf("chip running instruction %x\n", opcode);
 
   switch (opcode) {
   case 0x7F: c->a = c->a; break; // MOV A,A

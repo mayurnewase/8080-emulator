@@ -42,6 +42,22 @@ static void chip_port_out(void* userdata, uint8_t port, uint8_t value) {
   }
 }
 
+uint8_t cpu_port_in(cpu* cpu, uint8_t port_no) {
+  return 0;
+}
+
+void cpu_port_out(cpu* cpu, uint8_t port_no, uint8_t value) {
+  // this function is not doing what specified in the 8080 doc.
+  // this uses values in d and e to find address in memory to print till $
+
+  // printf("\ncpu port out input %x %x \n", port_no, value);
+  uint8_t operation = cpu->c;
+  uint16_t addr = (cpu->d << 8) | cpu->e;
+  do {
+    printf("%c", cpu->memory[addr++]);
+  } while (cpu->memory[addr] != '$');
+}
+
 int compare_registers(i8080* chip, cpu* cpu) {
   if (chip->a != cpu->a) {
     printf("a register is not equal\n");
@@ -143,6 +159,8 @@ int main() {
 
   // init cpu
   cpu_init(cpu, ROM_NAME, memory_offset_to_load_rom);
+  cpu->port_out = port_out;
+  cpu->port_in = port_in;
   printf("cpu initialized\n");
 
   FILE* op_fh = fopen(OUPUT_ASSEMBLY_NAME, "w");
